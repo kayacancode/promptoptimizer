@@ -129,7 +129,7 @@ export default function Home() {
       };
       
       // Only optimize the prompt (fast step)
-      const optimizeResponse = await fetch('/api/optimize', {
+      const optimizeResponse = await fetch('/api/optimize-advanced', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
