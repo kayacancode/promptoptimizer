@@ -68,6 +68,24 @@ Optimize the following prompt using these principles. Return ONLY the optimized 
         }]
       })
 
+      // Calculate confidence based on optimization quality
+      const calculateConfidence = (original: string, optimized: string): number => {
+        const lengthDifference = Math.abs(optimized.length - original.length) / original.length
+        const similarity = original === optimized ? 0 : 1
+        const hasSpecificInstructions = /\b(must|should|always|never|exactly|specifically)\b/i.test(optimized)
+        const hasExamples = /\bexample|\bfor instance|\be\.g\./i.test(optimized)
+        
+        let confidence = 0.5 // base confidence
+        
+        // Boost confidence for meaningful changes
+        if (similarity > 0) confidence += 0.2
+        if (lengthDifference > 0.1) confidence += 0.1 // significant length change
+        if (hasSpecificInstructions) confidence += 0.1
+        if (hasExamples) confidence += 0.1
+        
+        return Math.min(0.95, Math.max(0.3, confidence))
+      }
+
       optimizationResult = {
         originalContent: promptToOptimize,
         optimizedContent: response.content,
@@ -79,7 +97,7 @@ Optimize the following prompt using these principles. Return ONLY the optimized 
           optimized: response.content,
           reason: 'Comprehensive optimization applied'
         }],
-        confidence: 0.85,
+        confidence: calculateConfidence(promptToOptimize, response.content),
         timestamp: new Date().toISOString()
       }
     } else {

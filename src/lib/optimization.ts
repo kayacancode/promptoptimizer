@@ -4,7 +4,13 @@ import { ConfidenceScoring } from '@/lib/confidence-scoring'
 export class OptimizationEngine {
   private static readonly API_BASE = '/api'
   
-  static async optimize(configFile: ConfigFile): Promise<OptimizationResult> {
+  static async optimize(
+    configFile: ConfigFile, 
+    options?: {
+      includeContext?: boolean;
+      contextInfo?: string;
+    }
+  ): Promise<OptimizationResult> {
     try {
       console.log('Making optimization request to:', `${this.API_BASE}/optimize`)
       
@@ -16,7 +22,11 @@ export class OptimizationEngine {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(configFile),
+        body: JSON.stringify({
+          configFile,
+          includeContext: options?.includeContext ?? false,
+          contextInfo: options?.contextInfo ?? ''
+        }),
         signal: controller.signal
       })
 
