@@ -1,5 +1,6 @@
 import { ConfigFile, OptimizationResult, EvaluationResult, TestCase, OptimizationChange } from '@/types'
 import { ConfidenceScoring } from '@/lib/confidence-scoring'
+import { globalPromptService } from '@/lib/vector-db/global-prompt-service'
 
 export class OptimizationEngine {
   private static readonly API_BASE = '/api'
@@ -9,6 +10,8 @@ export class OptimizationEngine {
     options?: {
       includeContext?: boolean;
       contextInfo?: string;
+      userId?: string;
+      useGlobalPrompts?: boolean;
     }
   ): Promise<OptimizationResult> {
     try {
@@ -25,7 +28,9 @@ export class OptimizationEngine {
         body: JSON.stringify({
           configFile,
           includeContext: options?.includeContext ?? false,
-          contextInfo: options?.contextInfo ?? ''
+          contextInfo: options?.contextInfo ?? '',
+          userId: options?.userId,
+          useGlobalPrompts: options?.useGlobalPrompts ?? true
         }),
         signal: controller.signal
       })
@@ -52,8 +57,8 @@ export class OptimizationEngine {
       if (error instanceof Error && error.name === 'AbortError') {
         console.log('Request timed out, using mock data')
       }
-      // Fallback to mock data for demo purposes
-      return this.generateMockOptimization(configFile)
+      // Re-throw the error instead of falling back to mock data
+      throw error
     }
   }
 
@@ -93,80 +98,7 @@ export class OptimizationEngine {
     }
   }
 
-  private static generateMockOptimization(configFile: ConfigFile): OptimizationResult {
-    // Generate a realistic mock optimization based on the config type
-    const improvements = this.generateImprovements(configFile)
-    
-    // Create initial result for confidence calculation
-    const initialResult: OptimizationResult = {
-      originalContent: configFile.content,
-      optimizedContent: improvements.content,
-      explanation: improvements.explanation,
-      changes: improvements.changes,
-      confidence: 0.5, // Temporary value
-      timestamp: new Date().toISOString(),
-    }
-    
-    // Calculate dynamic confidence score
-    const confidenceAnalysis = ConfidenceScoring.calculateConfidence(
-      initialResult,
-      improvements.explanation,
-      true // Mock validation passed
-    )
-    
-    return {
-      ...initialResult,
-      confidence: confidenceAnalysis.score,
-      confidenceExplanation: {
-        factors: confidenceAnalysis.factors,
-        reasoning: confidenceAnalysis.reasoning,
-        riskLevel: confidenceAnalysis.riskLevel
-      }
-    }
-  }
 
-  private static generateImprovements(configFile: ConfigFile) {
-    const content = configFile.content
-    let optimizedContent = content
-    const changes: OptimizationChange[] = []
-    let explanation = "Enhanced the prompt with improved clarity, specificity, and structure to reduce ambiguity and improve performance."
-
-    // Simple prompt optimization logic
-    if (content.includes('You are a helpful assistant')) {
-      optimizedContent = content.replace(
-        'You are a helpful assistant',
-        'You are a helpful assistant. Please provide clear, accurate, and well-structured responses. Be specific in your answers and ask for clarification if the question is ambiguous.'
-      )
-      changes.push({
-        type: 'modification',
-        line: 1,
-        reason: 'Enhanced role definition with specific behavioral guidelines',
-        original: 'You are a helpful assistant',
-        optimized: 'You are a helpful assistant. Please provide clear, accurate, and well-structured responses...'
-      })
-      explanation = "Enhanced the assistant role with specific behavioral guidelines to improve response quality and consistency."
-    } else if (content.includes('helpful assistant')) {
-      optimizedContent = content.replace(
-        'helpful assistant',
-        'helpful assistant that provides detailed, accurate responses with examples when appropriate'
-      )
-      changes.push({
-        type: 'modification',
-        line: 1,
-        reason: 'Added specificity to assistant role definition'
-      })
-    } else {
-      // Add general improvements
-      optimizedContent = `${content}\n\nPlease ensure your response is:\n- Clear and specific\n- Well-structured\n- Accurate and factual`
-      changes.push({
-        type: 'addition',
-        line: content.split('\n').length + 1,
-        reason: 'Added response quality guidelines'
-      })
-    }
-
-    return { content: optimizedContent, explanation, changes }
-  }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   private static generateMockEvaluation(

@@ -36,6 +36,7 @@ export interface OptimizationResult {
     apeResults?: APEResult
     lmsysPatterns?: LMSYSAnalysisResult
   }
+  iterationHistory?: OptimizationIteration[]
   timestamp: string
 }
 
@@ -78,6 +79,35 @@ export interface OptimizationChange {
   reason: string
   description?: string
   reasoning?: string
+}
+
+export interface OptimizationIteration {
+  iteration: number
+  content: string
+  evaluation: EvaluationResult
+  targetsMet: boolean
+  improvement: number
+  cost: number
+  timestamp: string
+  stoppingReason?: 'targets_met' | 'max_iterations' | 'diminishing_returns' | 'budget_exceeded'
+}
+
+export interface OptimizationTargets {
+  structureCompliance?: number
+  hallucinationRate?: number
+  responseQuality?: number
+  overall?: number
+  passRate?: number
+  customMetrics?: Record<string, number>
+}
+
+export interface OptimizationConfig {
+  maxIterations?: number
+  budget?: number
+  costPerIteration?: number
+  targets?: OptimizationTargets
+  diminishingReturnsThreshold?: number
+  enableContinuousMonitoring?: boolean
 }
 
 export interface EvaluationResult {

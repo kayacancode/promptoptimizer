@@ -128,13 +128,15 @@ export default function Home() {
         size: 100
       };
       
-      // Only optimize the prompt (fast step)
+      // Only optimize the prompt (fast step) with global prompt insights
       const optimizeResponse = await fetch('/api/optimize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           configFile: configToOptimize,
           includeContext,
+          userId: 'user-' + Math.random().toString(36).substr(2, 9), // Generate a user ID for this session
+          useGlobalPrompts: true, // Enable global prompt pool
           enableAPE: true,
           enableSafetyEvaluation: true,
           enableLMSYSIntegration: true,
@@ -311,6 +313,20 @@ export default function Home() {
                     <CheckCircle2 className="h-4 w-4 text-primary" />
                   </div>
                 )}
+                {/* Global Prompt Pool Indicator */}
+                <div className="flex items-center justify-between p-3 bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-center space-x-2">
+                    <div className="flex -space-x-1">
+                      <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-xs text-white">1</div>
+                      <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center text-xs text-white">2</div>
+                      <div className="w-6 h-6 rounded-full bg-purple-500 flex items-center justify-center text-xs text-white">3</div>
+                    </div>
+                    <span className="text-sm font-medium text-blue-800">Global Prompt Insights</span>
+                  </div>
+                  <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700">
+                    AI Enhanced
+                  </Badge>
+                </div>
               </div>
 
               <div className="space-y-4">
