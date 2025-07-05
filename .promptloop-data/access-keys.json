@@ -1,0 +1,21 @@
+{
+  "pl_fca9e7535df042429ae68304": {
+    "key": "pl_fca9e7535df042429ae68304",
+    "email": "test2@example.com",
+    "tier": "trial",
+    "optimizationsUsed": 1,
+    "dailyLimit": 3,
+    "createdAt": "2025-07-05T17:27:00.781Z",
+    "lastUsed": "2025-07-05T17:27:37.878Z",
+    "isActive": true
+  },
+  "pl_efd2a97571f34a54add131e3": {
+    "key": "pl_efd2a97571f34a54add131e3",
+    "tier": "trial",
+    "optimizationsUsed": 1,
+    "dailyLimit": 3,
+    "createdAt": "2025-07-05T17:30:01.391Z",
+    "lastUsed": "2025-07-05T17:44:46.323Z",
+    "isActive": true
+  }
+}

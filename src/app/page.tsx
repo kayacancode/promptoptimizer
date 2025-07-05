@@ -26,10 +26,11 @@ import { BenchmarkSelector } from '@/components/BenchmarkSelector';
 import { EvalResults } from '@/components/EvalResults';
 import { PromptInput } from '@/components/PromptInput';
 import { SafetyEvaluation } from '@/components/SafetyEvaluation';
+import { AccessKeyManager } from '@/components/AccessKeyManager';
 import { TestCase, BenchmarkConfig, EvaluationResult, ConfigFile, OptimizationResult } from '@/types';
 
 export default function Home() {
-  const [currentStep, setCurrentStep] = useState(1);
+  const [currentStep, setCurrentStep] = useState(0);
   const [userTestCases, setUserTestCases] = useState<TestCase[]>([]);
   const [benchmarkConfigs, setBenchmarkConfigs] = useState<BenchmarkConfig[]>([
     { name: 'MMLU', enabled: false, sampleSize: 20, fullDataset: false },
@@ -128,10 +129,19 @@ export default function Home() {
         size: 100
       };
       
+      // Get access key from localStorage
+      const accessKey = localStorage.getItem('promptloop_access_key')
+      if (!accessKey) {
+        throw new Error('Access key required. Please generate one in the Access Key section.')
+      }
+
       // Only optimize the prompt (fast step) with global prompt insights
       const optimizeResponse = await fetch('/api/optimize', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessKey}`
+        },
         body: JSON.stringify({
           configFile: configToOptimize,
           includeContext,
@@ -200,6 +210,27 @@ export default function Home() {
 
   const renderStepContent = () => {
     switch (currentStep) {
+      case 0:
+        return (
+          <div className="space-y-6">
+            <div className="text-center space-y-4">
+              <h2 className="text-2xl font-bold">Welcome to PromptLoop</h2>
+              <p className="text-muted-foreground max-w-2xl mx-auto">
+                Get started by generating your access key. This gives you access to our AI-powered prompt optimization with global insights from the community.
+              </p>
+            </div>
+            <AccessKeyManager />
+            <div className="text-center">
+              <Button 
+                onClick={() => setCurrentStep(1)}
+                className="mt-4"
+              >
+                Continue to Prompt Optimization
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        );
       case 1:
         return (
           <PromptInput

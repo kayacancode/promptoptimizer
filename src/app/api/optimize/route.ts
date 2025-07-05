@@ -5,11 +5,31 @@ import { PromptExtractor } from '@/lib/prompt-extractor'
 import { ContextAnalyzer } from '@/lib/context-analyzer'
 import { LLMProvider } from '@/lib/llm/llm-provider'
 import { globalPromptService } from '@/lib/vector-db/global-prompt-service'
+import { authenticateRequest, requireOptimizationUsage } from '@/lib/auth-middleware'
 
 const llmProvider = new LLMProvider()
 
 export async function POST(request: NextRequest) {
   try {
+    // Authenticate the request
+    const auth = await authenticateRequest(request)
+    if (!auth.authorized) {
+      return NextResponse.json({
+        success: false,
+        error: auth.error || 'Unauthorized'
+      } as APIResponse, { status: 401 })
+    }
+
+    // Check and consume optimization usage
+    const usageResult = await requireOptimizationUsage(auth.key!)
+    if (!usageResult.success) {
+      return NextResponse.json({
+        success: false,
+        error: usageResult.error || 'Usage limit exceeded',
+        remaining: usageResult.remaining || 0
+      } as APIResponse, { status: 429 })
+    }
+
     const { configFile, includeContext, useSimpleMode = true, optimizationConfig, userId, useGlobalPrompts = true }: {
       configFile: ConfigFile
       includeContext: boolean
@@ -163,6 +183,10 @@ Optimize the following prompt using these principles and incorporate insights fr
     return NextResponse.json({
       success: true,
       data: optimizationResult,
+      usage: {
+        remaining: usageResult.remaining || 0,
+        tier: auth.tier || 'trial'
+      },
       message: 'Prompt optimization completed successfully'
     } as APIResponse)
 
