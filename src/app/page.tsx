@@ -213,11 +213,172 @@ export default function Home() {
       case 0:
         return (
           <div className="space-y-6">
-            <div className="text-center space-y-4">
-              <h2 className="text-2xl font-bold">Welcome to PromptLoop</h2>
-              <p className="text-muted-foreground max-w-2xl mx-auto">
-                Get started by generating your access key. This gives you access to our AI-powered prompt optimization with global insights from the community.
-              </p>
+            <div className="text-center space-y-8">
+              {/* Hero Section */}
+              <div className="space-y-6">
+                <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-black to-gray-600 bg-clip-text text-transparent">
+                  Optimize your prompts.
+                  <br />
+                  <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                    Save money & time.
+                  </span>
+                </h1>
+                <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
+                  Transform inefficient prompts into high-performing ones. Reduce token usage, cut API costs, and get better results with AI-powered optimization.
+                </p>
+              </div>
+
+              {/* Key Benefits - Cursor style */}
+              <div className="grid md:grid-cols-3 gap-4 max-w-4xl mx-auto">
+                <div className="group hover:bg-gray-50 p-6 rounded-xl border border-gray-200 transition-all hover:shadow-sm">
+                  <div className="space-y-3">
+                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                      <Zap className="h-5 w-5 text-blue-600" />
+                    </div>
+                    <h3 className="font-semibold text-gray-900">Reduce Token Costs</h3>
+                    <p className="text-sm text-gray-600 leading-relaxed">
+                      Shorter, more effective prompts mean fewer tokens and lower API bills. Save up to 50% on your AI costs.
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="group hover:bg-gray-50 p-6 rounded-xl border border-gray-200 transition-all hover:shadow-sm">
+                  <div className="space-y-3">
+                    <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                      <BarChart3 className="h-5 w-5 text-green-600" />
+                    </div>
+                    <h3 className="font-semibold text-gray-900">Better Results</h3>
+                    <p className="text-sm text-gray-600 leading-relaxed">
+                      Get more accurate, relevant responses with optimized prompts trained on successful patterns.
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="group hover:bg-gray-50 p-6 rounded-xl border border-gray-200 transition-all hover:shadow-sm">
+                  <div className="space-y-3">
+                    <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                      <RefreshCw className="h-5 w-5 text-purple-600" />
+                    </div>
+                    <h3 className="font-semibold text-gray-900">Stop Wasting Time</h3>
+                    <p className="text-sm text-gray-600 leading-relaxed">
+                      Skip the trial-and-error. Get optimized prompts in seconds instead of hours of manual testing.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Differentiation Section */}
+              <div className="max-w-4xl mx-auto space-y-6">
+                <div className="text-center space-y-3">
+                  <h2 className="text-2xl font-semibold text-gray-900">Why PromptLoop is different</h2>
+                  <p className="text-gray-600">Most prompt optimizers work in isolation. We learn from everyone.</p>
+                </div>
+                
+                <div className="grid md:grid-cols-2 gap-6">
+                  {/* Traditional Optimizers */}
+                  <div className="p-6 rounded-xl border border-red-100 bg-red-50">
+                    <div className="space-y-4">
+                      <div className="flex items-center space-x-2">
+                        <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center">
+                          <span className="text-red-600 text-sm">❌</span>
+                        </div>
+                        <h3 className="font-semibold text-red-900">Traditional Optimizers</h3>
+                      </div>
+                      <ul className="space-y-2 text-sm text-red-800">
+                        <li className="flex items-start space-x-2">
+                          <span className="text-red-400 mt-1">•</span>
+                          <span>Work with generic rules and templates</span>
+                        </li>
+                        <li className="flex items-start space-x-2">
+                          <span className="text-red-400 mt-1">•</span>
+                          <span>Start from scratch every time</span>
+                        </li>
+                        <li className="flex items-start space-x-2">
+                          <span className="text-red-400 mt-1">•</span>
+                          <span>Limited by pre-built knowledge</span>
+                        </li>
+                        <li className="flex items-start space-x-2">
+                          <span className="text-red-400 mt-1">•</span>
+                          <span>No learning from real user success</span>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  {/* PromptLoop */}
+                  <div className="p-6 rounded-xl border border-green-100 bg-green-50">
+                    <div className="space-y-4">
+                      <div className="flex items-center space-x-2">
+                        <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                          <span className="text-green-600 text-sm">✨</span>
+                        </div>
+                        <h3 className="font-semibold text-green-900">PromptLoop</h3>
+                      </div>
+                      <ul className="space-y-2 text-sm text-green-800">
+                        <li className="flex items-start space-x-2">
+                          <span className="text-green-400 mt-1">•</span>
+                          <span><strong>Global intelligence:</strong> Learn from every optimization</span>
+                        </li>
+                        <li className="flex items-start space-x-2">
+                          <span className="text-green-400 mt-1">•</span>
+                          <span><strong>Vector similarity:</strong> Find proven patterns that work</span>
+                        </li>
+                        <li className="flex items-start space-x-2">
+                          <span className="text-green-400 mt-1">•</span>
+                          <span><strong>Community wisdom:</strong> Benefit from real success stories</span>
+                        </li>
+                        <li className="flex items-start space-x-2">
+                          <span className="text-green-400 mt-1">•</span>
+                          <span><strong>Constantly improving:</strong> Gets smarter with every user</span>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Technical Advantage */}
+              <div className="max-w-3xl mx-auto">
+                <div className="p-8 rounded-2xl bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-100">
+                  <div className="text-center space-y-4">
+                    <div className="flex items-center justify-center space-x-2">
+                      <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
+                        <Code2 className="h-4 w-4 text-white" />
+                      </div>
+                      <h3 className="text-xl font-semibold text-gray-900">Powered by Vector Intelligence</h3>
+                    </div>
+                    <p className="text-gray-700 leading-relaxed">
+                      Our Pinecone-powered vector database analyzes semantic patterns across all prompts, 
+                      finding the most effective strategies for your specific use case. It's like having 
+                      an AI consultant that's learned from every successful prompt optimization ever made.
+                    </p>
+                    <div className="flex items-center justify-center space-x-6 text-sm text-gray-600">
+                      <div className="flex items-center space-x-1">
+                        <CheckCircle2 className="h-4 w-4 text-green-500" />
+                        <span>Semantic similarity matching</span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <CheckCircle2 className="h-4 w-4 text-green-500" />
+                        <span>Real-time pattern learning</span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <CheckCircle2 className="h-4 w-4 text-green-500" />
+                        <span>Cross-domain insights</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Social Proof - Simple */}
+              <div className="inline-flex items-center space-x-2 bg-gray-50 px-4 py-2 rounded-full border">
+                <div className="flex -space-x-1">
+                  <div className="w-6 h-6 rounded-full bg-blue-500"></div>
+                  <div className="w-6 h-6 rounded-full bg-green-500"></div>
+                  <div className="w-6 h-6 rounded-full bg-purple-500"></div>
+                </div>
+                <span className="text-sm text-gray-600">Trusted by developers and creators</span>
+              </div>
             </div>
             <AccessKeyManager />
             <div className="text-center">
