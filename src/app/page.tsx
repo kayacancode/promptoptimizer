@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -247,15 +248,20 @@ export default function Home() {
               {/* Top Navigation */}
               <nav className="flex items-center justify-between mb-16">
                 <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
-                    <span className="text-white font-bold text-lg">B</span>
+                  <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center p-1">
+                    <Image 
+                      src="/logo.png" 
+                      alt="bestmate logo" 
+                      width={32}
+                      height={32}
+                      className="object-contain rounded-lg"
+                    />
                   </div>
                   <span className="text-white text-xl font-semibold">bestmate</span>
                 </div>
                 <div className="flex items-center space-x-6">
-                  <a href="#features" className="text-gray-300 hover:text-white transition-colors">Features</a>
+                  {/* <a href="#features" className="text-gray-300 hover:text-white transition-colors">Features</a> */}
                   <a href="#pricing" className="text-gray-300 hover:text-white transition-colors">Pricing</a>
-                  <a href="#docs" className="text-gray-300 hover:text-white transition-colors">Docs</a>
                   <Button variant="outline" className="border-purple-500 text-purple-400 hover:bg-purple-500 hover:text-white">
                     Sign In
                   </Button>
@@ -1110,12 +1116,18 @@ export default function Home() {
         <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
           <div className="container mx-auto px-6 py-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                  <span className="text-primary-foreground font-bold text-sm">B</span>
-                </div>
-                <h1 className="text-xl font-semibold">bestmate</h1>
+                          <div className="flex items-center space-x-2">
+              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center p-1">
+                <Image 
+                  src="/logo.png" 
+                  alt="bestmate logo" 
+                  width={24}
+                  height={24}
+                  className="object-contain rounded"
+                />
               </div>
+                <h1 className="text-xl font-semibold">bestmate</h1>
+            </div>
               <Badge variant="secondary" className="text-xs">
                 Beta
               </Badge>
