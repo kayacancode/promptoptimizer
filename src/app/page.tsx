@@ -294,18 +294,18 @@ export default function Home() {
                     </div>
                     
                     <h1 className="text-5xl lg:text-7xl font-bold leading-tight">
-                      <span className="text-white">Your AI </span>
-                      <span className="bg-gradient-to-r from-red-500 to-pink-500 bg-clip-text text-transparent">broke.</span>
+                      <span className="text-white">AI that </span>
+                      <span className="bg-gradient-to-r from-red-500 to-pink-500 bg-clip-text text-transparent">tests,</span>
                       <br />
-                      <span className="text-white">Ours </span>
-                      <span className="bg-gradient-to-r from-purple-500 to-blue-500 bg-clip-text text-transparent">fixes</span>
+                      <span className="bg-gradient-to-r from-purple-500 to-blue-500 bg-clip-text text-transparent">fixes,</span>
+                      <span className="text-white"> and </span>
                       <br />
-                      <span className="text-gray-400 text-4xl lg:text-5xl">itself.</span>
+                      <span className="text-gray-400 text-4xl lg:text-5xl">improves itself</span>
                     </h1>
                     
                     <p className="text-xl text-gray-300 max-w-lg leading-relaxed">
-                      Autonomous system that closes the loop between AI feedback and implementation—fixing prompts, updating code, and testing changes automatically.
-                      <span className="text-purple-400 font-semibold"> Think DevOps for AI.</span>
+                      Autonomous system that runs benchmark tests, detects AI degradation, and auto-fixes prompts + code. Continuous evaluation loops ensure your AI stays optimized.
+                      <span className="text-purple-400 font-semibold"> Zero manual work.</span>
                     </p>
                   </div>
 
@@ -339,16 +339,16 @@ export default function Home() {
                   {/* Stats */}
                   <div className="flex items-center space-x-8 pt-8">
                     <div className="text-center">
+                      <div className="text-3xl font-bold text-white">8+</div>
+                      <div className="text-sm text-gray-400">Benchmark Tests</div>
+                    </div>
+                    <div className="text-center">
                       <div className="text-3xl font-bold text-white">24/7</div>
-                      <div className="text-sm text-gray-400">Self-Healing</div>
+                      <div className="text-sm text-gray-400">Auto-Eval</div>
                     </div>
                     <div className="text-center">
                       <div className="text-3xl font-bold text-white">Zero</div>
-                      <div className="text-sm text-gray-400">Human Input</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-3xl font-bold text-white">∞</div>
-                      <div className="text-sm text-gray-400">Iteration Loops</div>
+                      <div className="text-sm text-gray-400">Manual Work</div>
                     </div>
                   </div>
                 </div>
@@ -381,38 +381,38 @@ export default function Home() {
                         </div>
                       </div>
 
-                      {/* Problem Detection */}
+                      {/* Benchmark Detection */}
                       <div className="bg-slate-700 rounded-lg p-4 space-y-3">
-                        <div className="text-red-300 text-sm font-medium">⚠️ Issue Detected</div>
-                        <div className="bg-slate-800 rounded p-3 text-red-400 text-sm font-mono">
-                          Prompt accuracy dropped 15% → Auto-fixing...
+                        <div className="text-yellow-300 text-sm font-medium">🧪 Running MMLU + HumanEval Tests</div>
+                        <div className="bg-slate-800 rounded p-3 text-yellow-400 text-sm font-mono">
+                          Benchmark scores: 87% → 72% (-15%) → Issue detected
                         </div>
                       </div>
 
                       {/* Auto-Fix section */}
                       <div className="bg-gradient-to-r from-purple-900/20 to-green-900/20 rounded-lg p-4 space-y-3 border border-green-500/20">
                         <div className="flex items-center justify-between">
-                          <div className="text-green-300 text-sm font-medium">✅ Auto-Fixed & Deployed</div>
-                          <div className="bg-green-500 text-white text-xs px-2 py-1 rounded-full">Live in Prod</div>
+                          <div className="text-green-300 text-sm font-medium">✅ Auto-Fixed & Re-Evaluated</div>
+                          <div className="bg-green-500 text-white text-xs px-2 py-1 rounded-full">Deployed</div>
                         </div>
                         <div className="bg-slate-800 rounded p-3 text-green-400 text-sm font-mono">
-                          Improved prompt + updated tests → Performance restored to 98.5%
+                          New prompt → Re-tested on 8 benchmarks → 94% score (+22%)
                         </div>
                       </div>
 
                       {/* Stats */}
                       <div className="grid grid-cols-3 gap-3 pt-2">
                         <div className="bg-slate-700 rounded-lg p-3 text-center">
-                          <div className="text-green-400 font-bold">🔄</div>
-                          <div className="text-gray-400 text-xs">Auto-Fix</div>
+                          <div className="text-green-400 font-bold">8</div>
+                          <div className="text-gray-400 text-xs">Benchmarks</div>
                         </div>
                         <div className="bg-slate-700 rounded-lg p-3 text-center">
-                          <div className="text-blue-400 font-bold">🧪</div>
-                          <div className="text-gray-400 text-xs">Test Loop</div>
+                          <div className="text-blue-400 font-bold">94%</div>
+                          <div className="text-gray-400 text-xs">Score</div>
                         </div>
                         <div className="bg-slate-700 rounded-lg p-3 text-center">
-                          <div className="text-purple-400 font-bold">🚀</div>
-                          <div className="text-gray-400 text-xs">Deploy</div>
+                          <div className="text-purple-400 font-bold">+22%</div>
+                          <div className="text-gray-400 text-xs">Improved</div>
                         </div>
                       </div>
                     </div>
@@ -435,29 +435,29 @@ export default function Home() {
                     <div className="flex items-start space-x-3">
                       <div className="w-8 h-8 rounded-full bg-red-500 flex items-center justify-center text-white text-sm font-bold">1</div>
                       <div>
-                        <h4 className="font-semibold text-white">Detect</h4>
-                        <span className="text-sm">Monitor AI performance & catch degradation automatically</span>
+                        <h4 className="font-semibold text-white">Benchmark & Detect</h4>
+                        <span className="text-sm">Run 8+ evaluation tests (MMLU, HumanEval, Safety) continuously</span>
                       </div>
                     </div>
                     <div className="flex items-start space-x-3">
                       <div className="w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center text-white text-sm font-bold">2</div>
                       <div>
-                        <h4 className="font-semibold text-white">Fix</h4>
-                        <span className="text-sm">Auto-repair prompts, configs & code without human input</span>
+                        <h4 className="font-semibold text-white">Auto-Fix</h4>
+                        <span className="text-sm">Repair prompts, configs & code when scores drop</span>
                       </div>
                     </div>
                     <div className="flex items-start space-x-3">
                       <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white text-sm font-bold">3</div>
                       <div>
-                        <h4 className="font-semibold text-white">Deploy</h4>
-                        <span className="text-sm">Ship fixes directly to production with automated testing</span>
+                        <h4 className="font-semibold text-white">Re-Evaluate & Deploy</h4>
+                        <span className="text-sm">Test fixes on full benchmark suite before shipping</span>
                       </div>
                     </div>
                     <div className="flex items-start space-x-3">
                       <div className="w-8 h-8 rounded-full bg-purple-500 flex items-center justify-center text-white text-sm font-bold">4</div>
                       <div>
-                        <h4 className="font-semibold text-white">Learn</h4>
-                        <span className="text-sm">Evolve & improve from every failure → better every iteration</span>
+                        <h4 className="font-semibold text-white">Learn & Improve</h4>
+                        <span className="text-sm">Each evaluation cycle makes your AI smarter & more reliable</span>
                       </div>
                     </div>
                   </div>
