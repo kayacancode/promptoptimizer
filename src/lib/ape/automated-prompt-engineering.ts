@@ -42,7 +42,6 @@ export class AutomatedPromptEngineering {
    * Main APE optimization pipeline
    */
   async optimize(originalPrompt: string): Promise<OptimizationResult> {
-    console.log('Starting Automated Prompt Engineering optimization...')
 
     // Step 1: Generate diverse prompt candidates
     const candidates = await this.generateCandidates(originalPrompt)

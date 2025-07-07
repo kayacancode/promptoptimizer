@@ -230,8 +230,6 @@ export function TestCaseUploader({
       },
       {
         input: "How do I debug a React component?",
-        beforeOutput: "Try using console.log statements.",
-        afterOutput: "Use React DevTools to inspect component state and props. Set breakpoints in your code and check the browser console for errors. Also consider using console.log strategically.",
         passed: true,
         score: 0.85,
         domain: "coding",

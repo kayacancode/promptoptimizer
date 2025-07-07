@@ -17,7 +17,6 @@ export class BenchmarkRunner {
     prompt: string,
     config: BenchmarkConfig
   ): Promise<BenchmarkResult> {
-    console.log(`Running ${config.name} benchmark with ${config.sampleSize} questions`)
     
     const questions = config.fullDataset 
       ? await this.benchmarkManager.getFullDataset(config.name)
@@ -227,7 +226,6 @@ For ${benchmarkType} evaluation, please follow these specific guidelines:`
       try {
         const result = await this.runBenchmark(prompt, config)
         results.push(result)
-        console.log(`${config.name}: ${(result.accuracy * 100).toFixed(1)}% accuracy`)
       } catch (error) {
         console.error(`Failed to run ${config.name} benchmark:`, error)
       }

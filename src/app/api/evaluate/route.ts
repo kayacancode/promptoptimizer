@@ -76,17 +76,14 @@ export async function POST(request: NextRequest) {
     let evaluationResult: EvaluationResult
     
     if (userTestCases && userTestCases.length > 0) {
-      console.log(`Using ${userTestCases.length} user-provided test cases`)
       evaluationResult = await generateEvaluationWithUserTestCases(
         originalConfig, 
         optimizationResult, 
         userTestCases
       )
     } else if (skipTestCaseGeneration) {
-      console.log('Skipping test case generation, using benchmarks only')
       evaluationResult = await generateBenchmarkOnlyEvaluation(originalConfig, optimizationResult)
     } else {
-      console.log('No user test cases provided, generating project-specific ones')
       evaluationResult = await generateMockEvaluation(originalConfig, optimizationResult)
     }
     
@@ -94,7 +91,6 @@ export async function POST(request: NextRequest) {
 
     // Add benchmark evaluation if requested
     if (includeBenchmarks) {
-      console.log('Including benchmark evaluation...')
       const benchmarkService = new BenchmarkEvaluationService()
       
       try {
@@ -104,7 +100,6 @@ export async function POST(request: NextRequest) {
           evaluationResult,
           benchmarkConfigs
         )
-        console.log('Benchmark evaluation completed successfully')
       } catch (error) {
         console.warn('Benchmark evaluation failed, proceeding with base evaluation:', error)
       }
@@ -151,7 +146,6 @@ async function generateBenchmarkOnlyEvaluation(
   originalConfig: ConfigFile,
   optimizationResult: OptimizationResult
 ): Promise<EvaluationResult> {
-  console.log('Generating benchmark-only evaluation (no test cases)')
   
   const beforeScore = {
     structureCompliance: 0.65,
@@ -189,7 +183,6 @@ async function generateEvaluationWithUserTestCases(
   optimizationResult: OptimizationResult,
   userTestCases: TestCase[]
 ): Promise<EvaluationResult> {
-  console.log(`Evaluating with ${userTestCases.length} user-provided test cases`)
 
   // Re-evaluate user test cases with actual before/after configs
   const evaluatedTestCases: TestCase[] = await Promise.all(
@@ -256,7 +249,6 @@ async function generateMockEvaluation(
   let testCases: TestCase[]
   
   try {
-    console.log('Generating project-specific test cases...')
     testCases = await TestCaseGenerator.generateProjectSpecificTestCases(originalConfig)
     
     // Re-evaluate with actual before/after configs
@@ -277,7 +269,6 @@ async function generateMockEvaluation(
     )
     
     testCases = enhancedTestCases
-    console.log(`Generated ${testCases.length} project-specific test cases`)
   } catch (error) {
     console.error('Failed to generate project-specific test cases, falling back to generic ones:', error)
     

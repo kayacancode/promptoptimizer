@@ -37,7 +37,6 @@ export class AgentOrchestrator {
       this.agents.set(agent.getId(), agent)
     })
 
-    console.log(`Initialized ${agents.length} agents:`, Array.from(this.agents.keys()))
   }
 
   private initializeSafetyGuards(): void {
@@ -74,7 +73,6 @@ export class AgentOrchestrator {
     let rollbackPerformed = false
 
     try {
-      console.log(`Starting orchestrated optimization for: ${configFile.name}`)
 
       // Step 1: Feedback Analysis
       const feedbackTask = this.createTask('feedback', 'Analyze configuration for optimization opportunities', {
@@ -114,7 +112,6 @@ export class AgentOrchestrator {
 
       // Check if QA passed or if rollback is needed
       if (!qaResult.success || (qaResult.data?.recommendation === 'REJECT')) {
-        console.log('QA validation failed, initiating rollback')
         rollbackPerformed = await this.initiateRollback(implementationResult.data)
         
         if (!rollbackPerformed) {
@@ -136,7 +133,6 @@ export class AgentOrchestrator {
 
       // Check if evaluation meets thresholds
       if (evaluationResult.success && evaluationResult.data?.improvement < 5) {
-        console.log('Optimization improvement below threshold, considering rollback')
         
         if (await this.shouldRollback(evaluationResult.data)) {
           rollbackPerformed = await this.initiateRollback(implementationResult.data)
@@ -198,7 +194,6 @@ export class AgentOrchestrator {
     let lastError: string | undefined
     for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
       try {
-        console.log(`Executing task ${task.id} with ${agent.getName()} (attempt ${attempt}/${this.maxRetries})`)
         
         task.status = 'running'
         task.updatedAt = new Date().toISOString()
@@ -206,10 +201,8 @@ export class AgentOrchestrator {
         const result = await agent.execute(task)
         
         if (result.success) {
-          console.log(`Task ${task.id} completed successfully`)
           task.status = 'completed'
         } else {
-          console.log(`Task ${task.id} failed: ${result.error}`)
           task.status = 'failed'
           lastError = result.error
         }
@@ -278,7 +271,6 @@ export class AgentOrchestrator {
 
   private async initiateRollback(implementationData: any): Promise<boolean> {
     try {
-      console.log('Initiating automatic rollback...')
       
       if (implementationData?.changes) {
         // Reverse the changes
@@ -291,7 +283,6 @@ export class AgentOrchestrator {
         const rollbackResult = await this.gitManager.executeOperation(rollbackOperation)
         
         if (rollbackResult.success) {
-          console.log('Rollback completed successfully')
           return true
         } else {
           console.error('Rollback failed:', rollbackResult.error)
@@ -323,7 +314,6 @@ export class AgentOrchestrator {
       }
 
       await this.gitManager.executeOperation(commitOperation)
-      console.log('Optimization changes committed successfully')
     } catch (error) {
       console.error('Failed to commit optimization:', error)
     }
@@ -331,7 +321,6 @@ export class AgentOrchestrator {
 
   // Public methods for external integration
   async startContinuousMonitoring(configFiles: ConfigFile[], interval: number = 3600000): Promise<void> {
-    console.log(`Starting continuous monitoring for ${configFiles.length} configurations (interval: ${interval}ms)`)
     
     setInterval(async () => {
       for (const configFile of configFiles) {
@@ -340,7 +329,6 @@ export class AgentOrchestrator {
           const needsOptimization = await this.checkForOptimizationNeeds(configFile)
           
           if (needsOptimization) {
-            console.log(`Triggering auto-optimization for ${configFile.name}`)
             await this.orchestrateOptimization(configFile)
           }
         } catch (error) {

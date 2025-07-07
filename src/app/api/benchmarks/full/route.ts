@@ -26,7 +26,6 @@ export async function POST(request: NextRequest) {
       fullDataset: true
     }))
 
-    console.log('Starting full benchmark evaluation...')
     const results = await runner.runMultipleBenchmarks(prompt, configs)
     
     // Calculate overall metrics

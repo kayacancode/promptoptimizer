@@ -88,7 +88,6 @@ export class SafetyEvaluationSystem {
     testResponses: string[] = [],
     complianceFrameworks: string[] = []
   ): Promise<SafetyEvaluation> {
-    console.log('Starting comprehensive safety evaluation...')
 
     // Parallel evaluation of different safety dimensions
     const [

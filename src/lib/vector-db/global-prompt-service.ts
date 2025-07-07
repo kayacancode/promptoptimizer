@@ -231,13 +231,11 @@ export class GlobalPromptService {
       })
     )
     
-    console.log(`Successfully imported ${vectorPrompts.length} prompts to global pool`)
   }
 
   async deleteUserPrompts(userId: string): Promise<void> {
     // Note: This would require implementing a user-specific deletion method
     // in PineconeClient that queries by userId and deletes all matches
-    console.log(`Deleting all prompts for user: ${userId}`)
     // Implementation would depend on Pinecone's delete by filter capability
   }
 
@@ -253,7 +251,6 @@ export class GlobalPromptService {
   ): Promise<void> {
     // This would require re-upserting the prompt with updated metadata
     // Implementation depends on the ability to fetch current prompt data
-    console.log(`Updating metadata for prompt: ${promptId}`, metadata)
   }
 }
 

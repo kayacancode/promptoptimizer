@@ -21,7 +21,6 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    console.log('Creating database tables...')
 
     const results = {
       users: false,
@@ -35,33 +34,25 @@ export async function POST(request: NextRequest) {
     try {
       const { error: usersError } = await adminClient.from('users').select('id').limit(1)
       results.users = !usersError
-      console.log('Users table exists:', results.users)
     } catch (e) {
-      console.log('Users table check failed')
     }
 
     try {
       const { error: tokensError } = await adminClient.from('user_tokens').select('id').limit(1)
       results.user_tokens = !tokensError
-      console.log('User_tokens table exists:', results.user_tokens)
     } catch (e) {
-      console.log('User_tokens table check failed')
     }
 
     try {
       const { error: promptsError } = await adminClient.from('user_prompts').select('id').limit(1)
       results.user_prompts = !promptsError
-      console.log('User_prompts table exists:', results.user_prompts)
     } catch (e) {
-      console.log('User_prompts table check failed')
     }
 
     try {
       const { error: sessionsError } = await adminClient.from('user_sessions').select('id').limit(1)
       results.user_sessions = !sessionsError
-      console.log('User_sessions table exists:', results.user_sessions)
     } catch (e) {
-      console.log('User_sessions table check failed')
     }
 
     // If all tables exist, we're done
@@ -131,13 +122,10 @@ CREATE INDEX IF NOT EXISTS idx_user_sessions_user_id ON user_sessions(user_id);
         .insert({ query: tableSQL })
 
       if (error) {
-        console.log('PostgREST SQL method failed:', error.message)
         results.errors.push(`PostgREST: ${error.message}`)
       } else {
-        console.log('Tables created via PostgREST SQL')
       }
     } catch (e) {
-      console.log('PostgREST SQL method not available')
     }
 
     // Alternative: Try using pg admin queries if available
@@ -153,12 +141,9 @@ CREATE INDEX IF NOT EXISTS idx_user_sessions_user_id ON user_sessions(user_id);
       })
 
       if (response.ok) {
-        console.log('Tables created via pg_sql_query RPC')
       } else {
-        console.log('pg_sql_query RPC failed:', response.statusText)
       }
     } catch (e) {
-      console.log('pg_sql_query RPC not available')
     }
 
     // Re-check tables after creation attempts

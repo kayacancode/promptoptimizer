@@ -14,7 +14,6 @@ export abstract class BaseAgent {
   abstract execute(task: AgentTask): Promise<AgentResult>
 
   protected log(message: string, level: 'info' | 'warn' | 'error' = 'info'): void {
-    console.log(`[${this.name}] ${level.toUpperCase()}: ${message}`)
   }
 
   protected createResult(

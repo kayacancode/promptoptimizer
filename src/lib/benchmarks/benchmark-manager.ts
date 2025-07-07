@@ -22,7 +22,6 @@ export class BenchmarkManager {
         this.loadTruthfulQADataset()
       ])
       this.initialized = true
-      console.log('Benchmark datasets initialized successfully')
     } catch (error) {
       console.error('Failed to initialize benchmark datasets:', error)
       // Fall back to sample data for demo

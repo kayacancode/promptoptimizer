@@ -56,10 +56,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log('Starting advanced prompt optimization with:')
-    console.log('- APE:', enableAPE)
-    console.log('- Safety Evaluation:', enableSafetyEvaluation)
-    console.log('- LMSYS Integration:', enableLMSYSIntegration)
 
     // Extract original prompt from config
     const originalPrompt = extractPromptFromConfig(configFile)
@@ -69,7 +65,6 @@ export async function POST(request: NextRequest) {
     if (enableAPE) {
       // Use Automated Prompt Engineering with timeout
       try {
-        console.log('Starting APE optimization with 30s timeout...')
         const apeEngine = new AutomatedPromptEngineering({
           domain: inferDomain(configFile),
           useCase: inferUseCase(configFile),
@@ -87,7 +82,6 @@ export async function POST(request: NextRequest) {
             setTimeout(() => reject(new Error('APE optimization timeout')), 30000)
           )
         ])
-        console.log('APE optimization completed successfully')
       } catch (error) {
         console.warn('APE optimization failed or timed out, falling back to fast optimization:', error)
         optimizationResult = await fastOptimizationWithGemini(originalPrompt, configFile, includeContext)
@@ -101,7 +95,6 @@ export async function POST(request: NextRequest) {
     let safetyEvaluation = null
     if (enableSafetyEvaluation) {
       try {
-        console.log('Performing safety evaluation with 10s timeout...')
         
         // Generate sample responses for safety testing
         const testResponses = await generateSafetyTestResponses(
@@ -120,7 +113,6 @@ export async function POST(request: NextRequest) {
           )
         ])
 
-        console.log(`Safety evaluation completed. Overall score: ${safetyEvaluation.overall_score}`)
       } catch (error) {
         console.warn('Safety evaluation failed or timed out, skipping:', error)
         safetyEvaluation = null
@@ -131,7 +123,6 @@ export async function POST(request: NextRequest) {
     let lmsysInsights = null
     if (enableLMSYSIntegration) {
       try {
-        console.log('Analyzing LMSYS dataset patterns with 10s timeout...')
         const domain = inferDomain(configFile)
         
         lmsysInsights = await Promise.race([
@@ -141,7 +132,6 @@ export async function POST(request: NextRequest) {
           )
         ])
         
-        console.log(`LMSYS analysis completed for domain: ${domain}`)
       } catch (error) {
         console.warn('LMSYS integration failed or timed out, using fallback:', error)
         lmsysInsights = {
@@ -262,7 +252,6 @@ export async function POST(request: NextRequest) {
     
     // If it's a timeout, return a fallback response
     if (error instanceof Error && error.message.includes('timeout')) {
-      console.log('Request timed out, returning fallback optimization...')
       
       try {
         const body = await request.json()

@@ -80,7 +80,6 @@ export class BenchmarkEvaluationService {
     optimizedPrompt: string,
     configs: BenchmarkConfig[]
   ): Promise<BenchmarkEvaluationResult> {
-    console.log('Starting benchmark comparison evaluation...')
     
     // Run benchmarks on original prompt
     const originalPromptResults = await this.benchmarkRunner.runMultipleBenchmarks(
@@ -113,7 +112,6 @@ export class BenchmarkEvaluationService {
         totalImprovement += improvement
         improvementCount++
 
-        console.log(`${config.name}: ${originalResult.accuracy.toFixed(3)} → ${optimizedResult.accuracy.toFixed(3)} (${improvement.toFixed(1)}% improvement)`)
       }
     }
 

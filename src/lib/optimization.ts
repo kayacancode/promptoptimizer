@@ -15,7 +15,6 @@ export class OptimizationEngine {
     }
   ): Promise<OptimizationResult> {
     try {
-      console.log('Making optimization request to:', `${this.API_BASE}/optimize`)
       
       const controller = new AbortController()
       const timeout = setTimeout(() => controller.abort(), 120000) // 2 minutes timeout
@@ -37,7 +36,6 @@ export class OptimizationEngine {
 
       clearTimeout(timeout)
 
-      console.log('Response status:', response.status)
       
       if (!response.ok) {
         const errorText = await response.text()
@@ -45,7 +43,6 @@ export class OptimizationEngine {
       }
 
       const result = await response.json()
-      console.log('Optimization API response:', result)
       
       if (!result.success) {
         throw new Error(`API returned error: ${result.error}`)
@@ -55,7 +52,6 @@ export class OptimizationEngine {
     } catch (error) {
       console.error('Optimization error:', error)
       if (error instanceof Error && error.name === 'AbortError') {
-        console.log('Request timed out, using mock data')
       }
       // Re-throw the error instead of falling back to mock data
       throw error

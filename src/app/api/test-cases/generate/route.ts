@@ -36,7 +36,6 @@ export async function POST(request: NextRequest) {
       size: config.content?.length || 0
     }
 
-    console.log(`Generating ${testCaseCount} project-specific test cases...`)
     
     // Generate project-specific test cases
     const testCases = await TestCaseGenerator.generateProjectSpecificTestCases(

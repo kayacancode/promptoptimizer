@@ -272,17 +272,18 @@ export default function Home() {
                     </div>
                     
                     <h1 className="text-5xl lg:text-7xl font-bold leading-tight">
-                      <span className="text-white">Optimize</span>
+                      <span className="text-white">Optimize, </span>
+                      <span className="bg-gradient-to-r from-red-500 to-pink-500 bg-clip-text text-transparent">test,</span>
                       <br />
-                      <span className="text-white">your </span>
-                      <span className="bg-gradient-to-r from-red-500 to-pink-500 bg-clip-text text-transparent">prompts</span>
+                      <span className="text-white">and </span>
+                      <span className="bg-gradient-to-r from-purple-500 to-blue-500 bg-clip-text text-transparent">deploy</span>
                       <br />
-                      <span className="text-gray-400 text-4xl lg:text-5xl">with AI intelligence</span>
+                      <span className="text-gray-400 text-4xl lg:text-5xl">automatically</span>
                     </h1>
                     
                     <p className="text-xl text-gray-300 max-w-lg leading-relaxed">
-                      Transform inefficient prompts into high-performing ones. 
-                      <span className="text-red-400 font-semibold"> Reduce costs by 50%</span> and get better results with vector-powered optimization.
+                      Complete automated workflow: optimize prompts, run benchmark tests, and create PRs to integrate improvements directly into your codebase.
+                      <span className="text-red-400 font-semibold"> Reduce costs by 50%</span> with zero manual work.
                     </p>
                   </div>
 
@@ -291,7 +292,12 @@ export default function Home() {
                     <Button 
                       size="lg"
                       className="bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white border-0 px-8 py-6 text-lg font-semibold rounded-xl shadow-lg hover:shadow-red-500/25 transition-all"
-                      onClick={() => setCurrentStep(1)}
+                      onClick={() => {
+                        document.getElementById('auth-section')?.scrollIntoView({ 
+                          behavior: 'smooth',
+                          block: 'center'
+                        });
+                      }}
                     >
                       Start Optimizing
                       <ArrowRight className="ml-2 h-5 w-5" />
@@ -355,34 +361,34 @@ export default function Home() {
                       <div className="bg-slate-700 rounded-lg p-4 space-y-3">
                         <div className="text-gray-300 text-sm font-medium">Original Prompt</div>
                         <div className="bg-slate-800 rounded p-3 text-gray-400 text-sm font-mono">
-                          Write a blog post about AI
+                          Analyze this code and suggest improvements
                         </div>
                       </div>
 
                       {/* Output section */}
                       <div className="bg-gradient-to-r from-purple-900/20 to-pink-900/20 rounded-lg p-4 space-y-3 border border-purple-500/20">
                         <div className="flex items-center justify-between">
-                          <div className="text-purple-300 text-sm font-medium">Optimized Result</div>
-                          <div className="bg-green-500 text-white text-xs px-2 py-1 rounded-full">+87% Better</div>
+                          <div className="text-purple-300 text-sm font-medium">Auto-Optimized & Tested</div>
+                          <div className="bg-green-500 text-white text-xs px-2 py-1 rounded-full">Ready for PR</div>
                         </div>
                         <div className="bg-slate-800 rounded p-3 text-green-400 text-sm font-mono">
-                          Create a comprehensive 1500-word blog post about artificial intelligence, focusing on recent developments, practical applications, and future implications. Include examples, use an engaging tone, and structure with clear headings.
+                          Perform a comprehensive code analysis focusing on: performance bottlenecks, security vulnerabilities, and maintainability issues. Provide specific, actionable recommendations with examples.
                         </div>
                       </div>
 
                       {/* Stats */}
                       <div className="grid grid-cols-3 gap-3 pt-2">
                         <div className="bg-slate-700 rounded-lg p-3 text-center">
-                          <div className="text-white font-bold">-45%</div>
-                          <div className="text-gray-400 text-xs">Tokens</div>
+                          <div className="text-green-400 font-bold">✓</div>
+                          <div className="text-gray-400 text-xs">Tested</div>
                         </div>
                         <div className="bg-slate-700 rounded-lg p-3 text-center">
-                          <div className="text-green-400 font-bold">+89%</div>
-                          <div className="text-gray-400 text-xs">Quality</div>
+                          <div className="text-blue-400 font-bold">PR</div>
+                          <div className="text-gray-400 text-xs">Ready</div>
                         </div>
                         <div className="bg-slate-700 rounded-lg p-3 text-center">
-                          <div className="text-purple-400 font-bold">2.3s</div>
-                          <div className="text-gray-400 text-xs">Speed</div>
+                          <div className="text-purple-400 font-bold">Auto</div>
+                          <div className="text-gray-400 text-xs">Deploy</div>
                         </div>
                       </div>
                     </div>
@@ -394,8 +400,48 @@ export default function Home() {
                 </div>
               </div>
 
+              {/* The Complete Loop Section */}
+              <div className="mt-16 max-w-2xl mx-auto">
+                <div className="bg-slate-800/60 backdrop-blur-xl rounded-2xl p-8 border border-purple-500/20 shadow-2xl">
+                  <h3 className="text-2xl font-semibold text-white mb-6 text-center flex items-center justify-center">
+                    <RefreshCw className="h-6 w-6 text-purple-400 mr-3" />
+                    The Complete Loop
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-gray-300">
+                    <div className="flex items-start space-x-3">
+                      <div className="w-8 h-8 rounded-full bg-red-500 flex items-center justify-center text-white text-sm font-bold">1</div>
+                      <div>
+                        <h4 className="font-semibold text-white">Optimize</h4>
+                        <span className="text-sm">AI-powered prompt enhancement with vector intelligence</span>
+                      </div>
+                    </div>
+                    <div className="flex items-start space-x-3">
+                      <div className="w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center text-white text-sm font-bold">2</div>
+                      <div>
+                        <h4 className="font-semibold text-white">Test</h4>
+                        <span className="text-sm">Benchmark testing & performance metrics validation</span>
+                      </div>
+                    </div>
+                    <div className="flex items-start space-x-3">
+                      <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white text-sm font-bold">3</div>
+                      <div>
+                        <h4 className="font-semibold text-white">Deploy</h4>
+                        <span className="text-sm">Automatic PR creation to integrate into codebase</span>
+                      </div>
+                    </div>
+                    <div className="flex items-start space-x-3">
+                      <div className="w-8 h-8 rounded-full bg-purple-500 flex items-center justify-center text-white text-sm font-bold">4</div>
+                      <div>
+                        <h4 className="font-semibold text-white">Learn</h4>
+                        <span className="text-sm">Results feed back to improve future optimizations</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {/* Auth Section */}
-              <div className="mt-16 max-w-md mx-auto">
+              <div id="auth-section" className="mt-12 max-w-md mx-auto">
                 <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-8 shadow-2xl [&_.text-muted-foreground]:text-gray-200 [&_.text-sm]:text-gray-200 [&_.text-xs]:text-gray-300 [&_h2]:text-white [&_h3]:text-white [&_label]:text-white [&_p]:text-gray-200 [&_input]:bg-white/20 [&_input]:border-white/30 [&_input]:text-white [&_input::placeholder]:text-gray-300 [&_button]:bg-white/20 [&_button]:hover:bg-white/30 [&_button]:border-white/30">
                   <UserAuthComponent />
                 </div>

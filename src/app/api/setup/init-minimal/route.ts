@@ -21,47 +21,34 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    console.log('Creating minimal database tables...')
-
     // Check current table status
     const results = {
       users: false,
       user_tokens: false
     }
-
-    console.log('Checking initial table status...')
     
     try {
       const { error: usersError } = await adminClient.from('users').select('id').limit(1)
       results.users = !usersError
-      console.log('Users table initial check:', { exists: results.users, error: usersError?.message })
     } catch (e) {
-      console.log('Users table initial check failed:', e)
+      // Table doesn't exist
     }
 
     try {
       const { error: tokensError } = await adminClient.from('user_tokens').select('id').limit(1)
       results.user_tokens = !tokensError
-      console.log('User_tokens table initial check:', { exists: results.user_tokens, error: tokensError?.message })
     } catch (e) {
-      console.log('User_tokens table initial check failed:', e)
+      // Table doesn't exist
     }
 
     // If both tables exist, we're done
     if (results.users && results.user_tokens) {
-      console.log('Both essential tables already exist, skipping creation')
       return NextResponse.json({
         success: true,
         message: 'Essential tables already exist',
         tablesCreated: results
       })
     }
-
-    console.log('Some tables missing, attempting creation...')
-    console.log('Missing tables:', { 
-      users: !results.users, 
-      user_tokens: !results.user_tokens 
-    })
 
     // Create essential tables only
     const minimalSQL = `
@@ -91,28 +78,21 @@ CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_user_tokens_user_id ON user_tokens(user_id);
 `
 
-    console.log('IMPORTANT: Automatic table creation via API is not supported by Supabase.')
-    console.log('Tables need to be created manually in the Supabase dashboard.')
-    console.log('Please copy and run this SQL in your Supabase SQL Editor:')
-    console.log(minimalSQL)
-
     // Re-check after potential creation (in case user created them manually)
     const finalCheck = { users: false, user_tokens: false }
 
     try {
       const { error: usersError } = await adminClient.from('users').select('id').limit(1)
       finalCheck.users = !usersError
-      console.log('Users table final check:', { exists: finalCheck.users, error: usersError?.message })
     } catch (e) {
-      console.log('Users table final check failed:', e)
+      // Table still doesn't exist
     }
 
     try {
       const { error: tokensError } = await adminClient.from('user_tokens').select('id').limit(1)
       finalCheck.user_tokens = !tokensError
-      console.log('User_tokens table final check:', { exists: finalCheck.user_tokens, error: tokensError?.message })
     } catch (e) {
-      console.log('User_tokens table final check failed:', e)
+      // Table still doesn't exist
     }
 
     if (finalCheck.users && finalCheck.user_tokens) {

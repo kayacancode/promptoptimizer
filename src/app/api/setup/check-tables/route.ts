@@ -21,7 +21,6 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    console.log('Checking table status...')
 
     const results = {
       users: { exists: false, error: null as string | null },

@@ -20,10 +20,8 @@ export async function POST(request: NextRequest) {
     const runner = new BenchmarkRunner()
 
     // Run benchmarks on both prompts
-    console.log('Running benchmarks on original prompt...')
     const originalPromptResults = await runner.runMultipleBenchmarks(originalPrompt, benchmarkConfigs)
     
-    console.log('Running benchmarks on optimized prompt...')
     const optimizedPromptResults = await runner.runMultipleBenchmarks(optimizedPrompt, benchmarkConfigs)
 
     // Calculate improvements

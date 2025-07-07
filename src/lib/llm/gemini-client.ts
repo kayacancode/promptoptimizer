@@ -68,7 +68,6 @@ export class GeminiClient {
     } catch (error: any) {
       // Handle rate limit errors with retry
       if (error.status === 429) {
-        console.log('Rate limit hit, waiting before retry...')
         const retryDelay = this.extractRetryDelay(error) || 20000 // Default 20s
         await new Promise(resolve => setTimeout(resolve, retryDelay))
         
@@ -120,7 +119,6 @@ export class GeminiClient {
     } catch (error: any) {
       // Handle rate limit errors with retry
       if (error.status === 429) {
-        console.log('Rate limit hit, waiting before retry...')
         const retryDelay = this.extractRetryDelay(error) || 20000 // Default 20s
         await new Promise(resolve => setTimeout(resolve, retryDelay))
         

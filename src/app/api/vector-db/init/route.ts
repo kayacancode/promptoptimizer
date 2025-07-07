@@ -6,7 +6,6 @@ export async function POST(request: NextRequest) {
   try {
     const { force = false }: { force?: boolean } = await request.json()
     
-    console.log('Initializing vector database system...')
     const result = await vectorDatabaseInitializer.initializeSystem()
     
     if (result.success) {
@@ -32,7 +31,6 @@ export async function POST(request: NextRequest) {
 
 export async function GET() {
   try {
-    console.log('Checking vector database system health...')
     const health = await vectorDatabaseInitializer.checkSystemHealth()
     
     return NextResponse.json({

@@ -33,7 +33,6 @@ export async function authenticateTokenRequest(request: NextRequest): Promise<To
                        cookies.get('sb-' + process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/https?:\/\//, '').replace(/\./g, '-') + '-auth-token')
 
     if (!accessToken) {
-      console.log('No access token found in cookies')
       return {
         authorized: false,
         error: 'Authentication token not found. Please sign in to continue.'

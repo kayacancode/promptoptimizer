@@ -11,17 +11,14 @@ export interface InitializationStats {
 export class VectorDatabaseInitializer {
   static async initializeSystem(): Promise<InitializationStats> {
     try {
-      console.log('Initializing PromptLoop vector database system...')
       
       // Initialize the vector database
       await globalPromptService.initialize()
-      console.log('✓ Pinecone index initialized')
       
       // Import sample prompts for testing (optional)
       const samplePrompts = this.generateSamplePrompts()
       if (samplePrompts.length > 0) {
         await globalPromptService.bulkImportPrompts(samplePrompts)
-        console.log(`✓ Imported ${samplePrompts.length} sample prompts`)
       }
       
       return {

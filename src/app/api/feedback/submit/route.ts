@@ -51,13 +51,6 @@ export async function POST(request: NextRequest) {
     // Store feedback (in a real app, this would go to a database)
     feedbackStore.push(userFeedback)
     
-    console.log('User feedback received:', {
-      benchmark: benchmarkName,
-      question: questionId,
-      rating: userRating,
-      helpful: isResultHelpful
-    })
-    
     return NextResponse.json({
       success: true,
       message: 'Feedback submitted successfully',

@@ -36,7 +36,6 @@ export class UserAuthManager {
     }
 
     try {
-      console.log('Starting signUp process for:', email)
       
       // Sign up with Supabase Auth
       const { data, error } = await supabase.auth.signUp({
@@ -44,7 +43,6 @@ export class UserAuthManager {
         password,
       })
 
-      console.log('Supabase auth signUp result:', { data, error })
 
       if (error) {
         console.error('Supabase auth error:', error)
@@ -52,12 +50,10 @@ export class UserAuthManager {
       }
 
       if (data.user) {
-        console.log('User created successfully with userId:', data.user.id)
         
         // Try to create user record - this is the essential part
         try {
           await this.createUserRecord(data.user.id, email)
-          console.log('User record created successfully')
         } catch (userError) {
           console.error('Failed to create user record:', userError)
           return { success: false, error: `Failed to create user record: ${userError instanceof Error ? userError.message : 'Unknown error'}` }
@@ -66,7 +62,6 @@ export class UserAuthManager {
         // Try to initialize tokens - this is optional and won't fail signup if it doesn't work
         try {
           await this.initializeUserTokensOptional(data.user.id)
-          console.log('User tokens initialized successfully')
         } catch (tokenError) {
           console.warn('Failed to initialize user tokens (this is optional):', tokenError)
           // Don't fail signup if token initialization fails - user can still use the app
@@ -75,7 +70,6 @@ export class UserAuthManager {
         return { success: true, user: data.user }
       }
 
-      console.log('No user data returned from signUp')
       return { success: false, error: 'Failed to create user' }
     } catch (error) {
       console.error('SignUp error details:', error)
@@ -143,7 +137,6 @@ export class UserAuthManager {
       }
 
       if (!accessToken) {
-        console.log('No access token found in request')
         return null
       }
 
@@ -180,7 +173,6 @@ export class UserAuthManager {
 
   private static async initializeUserTokens(userId: string, email: string): Promise<void> {
     try {
-      console.log('Starting initializeUserTokens for userId:', userId, 'email:', email)
       
       // Ensure tables exist
       await this.ensureTablesExist()
@@ -191,7 +183,6 @@ export class UserAuthManager {
       // Initialize user tokens
       await this.initializeUserTokensOptional(userId)
       
-      console.log('User and tokens initialized successfully')
     } catch (error) {
       console.error('Error in initializeUserTokens:', error)
       throw error
@@ -200,19 +191,16 @@ export class UserAuthManager {
 
   private static async createUserRecord(userId: string, email: string): Promise<void> {
     try {
-      console.log('Attempting to create user record...')
       
       // First ensure the users table exists
       await this.ensureTablesExist()
       
       // Let's check if the table actually exists by testing it first
-      console.log('Testing if users table exists...')
       const { data: testData, error: testError } = await supabase
         .from('users')
         .select('id')
         .limit(1)
       
-      console.log('Users table test result:', { testData, testError })
       
       if (testError && testError.code === '42P01') {
         throw new Error(`Users table does not exist. Please create it manually by running this SQL in your Supabase dashboard:
@@ -225,7 +213,6 @@ CREATE TABLE IF NOT EXISTS users (
 );`)
       }
       
-      console.log('Users table exists, proceeding with upsert...')
       
       const { data: userData, error: userError } = await supabase
         .from('users')
@@ -236,7 +223,6 @@ CREATE TABLE IF NOT EXISTS users (
           updated_at: new Date().toISOString(),
         })
 
-      console.log('User record upsert result:', { userData, userError })
 
       if (userError) {
         console.error('DETAILED ERROR creating user record:', {
@@ -273,7 +259,6 @@ CREATE TABLE IF NOT EXISTS users (
         throw new Error(`Database error saving new user: ${errorMsg} (Code: ${userError?.code || 'unknown'})`)
       }
 
-      console.log('User record created successfully')
     } catch (error) {
       console.error('Error in createUserRecord:', error)
       throw error
@@ -282,7 +267,6 @@ CREATE TABLE IF NOT EXISTS users (
 
   private static async initializeUserTokensOptional(userId: string): Promise<void> {
     try {
-      console.log('Attempting to initialize user tokens...')
       
       // Check if user_tokens table exists first
       const { data: tableExists, error: checkError } = await supabase
@@ -310,7 +294,6 @@ CREATE TABLE IF NOT EXISTS users (
           last_reset_date: new Date().toISOString().split('T')[0],
         })
 
-      console.log('User tokens upsert result:', { tokenData, tokenError })
 
       if (tokenError) {
         console.error('Error initializing user tokens:', {
@@ -323,7 +306,6 @@ CREATE TABLE IF NOT EXISTS users (
         throw new Error(`Database error initializing user tokens: ${tokenError.message}`)
       }
 
-      console.log('User tokens initialized successfully')
     } catch (error) {
       console.error('Error in initializeUserTokensOptional:', error)
       throw error
@@ -568,7 +550,6 @@ CREATE TABLE IF NOT EXISTS users (
     error?: string
   }> {
     try {
-      console.log('Finding or creating user from GitHub data:', { githubEmail, githubName })
       
       // First, try to find existing user by email
       const { data: existingUser, error: findError } = await supabase
@@ -584,12 +565,10 @@ CREATE TABLE IF NOT EXISTS users (
       }
 
       if (existingUser) {
-        console.log('Found existing user:', existingUser.id)
         return { success: true, userId: existingUser.id }
       }
 
       // User doesn't exist, create a new one
-      console.log('Creating new user for GitHub email:', githubEmail)
       
       // Generate a user ID (you might want to use GitHub user ID instead)
       const userId = crypto.randomUUID()
@@ -600,7 +579,6 @@ CREATE TABLE IF NOT EXISTS users (
         // Try to initialize tokens
         try {
           await this.initializeUserTokensOptional(userId)
-          console.log('User tokens initialized for new GitHub user')
         } catch (tokenError) {
           console.warn('Failed to initialize tokens for new GitHub user (this is optional):', tokenError)
         }
@@ -626,7 +604,6 @@ CREATE TABLE IF NOT EXISTS users (
 
   private static async ensureTablesExist(): Promise<void> {
     try {
-      console.log('Ensuring essential tables exist via API...')
       
       // Call our minimal table creation API (just users and user_tokens)
       const response = await fetch('/api/setup/init-minimal', {
@@ -636,14 +613,10 @@ CREATE TABLE IF NOT EXISTS users (
         },
       })
 
-      console.log('Table creation API response status:', response.status)
       
       const result = await response.json()
-      console.log('Table creation API result:', result)
       
       if (result.success) {
-        console.log('Essential tables ensured successfully:', result.message)
-        console.log('Tables created:', result.tablesCreated)
       } else {
         console.warn('Essential table creation had issues:', result.error)
         if (result.details) {

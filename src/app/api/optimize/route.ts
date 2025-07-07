@@ -99,11 +99,9 @@ export async function POST(request: NextRequest) {
     if (useSimpleMode) {
       // Check if iterative optimization is requested
       if (optimizationConfig?.targets || optimizationConfig?.maxIterations) {
-        console.log('Using iterative optimization mode with targets...')
         optimizationResult = await performIterativeOptimization(configFile, optimizationConfig, userId, useGlobalPrompts)
       } else {
         // Simple mode: Single API call for optimization with global prompt insights
-        console.log('Using simple optimization mode with global prompts...')
         
         const promptToOptimize = configFile.extractedPrompts && configFile.extractedPrompts.length > 0
           ? configFile.extractedPrompts[0].content
@@ -233,7 +231,6 @@ Optimize the following prompt using these principles and incorporate insights fr
 
         // Note: Token usage and prompt saving are already handled in requireTokenUsage
         // The prompt was automatically saved when the token was used
-        console.log('Optimization completed for user:', auth.userId)
       } catch (error) {
         console.error('Failed to log optimization:', error)
         // Continue execution - don't fail the request if logging fails
@@ -290,13 +287,10 @@ async function performIterativeOptimization(
   let bestResult: OptimizationResult | null = null
   let lastImprovement = 0
 
-  console.log(`Starting iterative optimization with targets:`, targets)
 
   for (let iteration = 1; iteration <= maxIterations; iteration++) {
-    console.log(`--- Iteration ${iteration} ---`)
     
     if (totalCost + costPerIteration > budget) {
-      console.log(`Budget exceeded. Stopping at iteration ${iteration}`)
       break
     }
 
@@ -317,7 +311,6 @@ async function performIterativeOptimization(
     const improvement = evaluationResult.improvement
     const targetsMet = checkTargetsMet(evaluationResult.afterScore, targets)
     
-    console.log(`Iteration ${iteration}: Improvement=${improvement.toFixed(2)}%, Targets met=${targetsMet}`)
 
     // Store iteration result
     const iterationResult: OptimizationIteration = {
@@ -334,14 +327,12 @@ async function performIterativeOptimization(
 
     // Check stopping conditions
     if (targetsMet) {
-      console.log(`Targets met at iteration ${iteration}!`)
       iterationResult.stoppingReason = 'targets_met'
       break
     }
 
     // Check diminishing returns
     if (iteration > 1 && Math.abs(improvement - lastImprovement) < diminishingReturnsThreshold) {
-      console.log(`Diminishing returns detected at iteration ${iteration}`)
       iterationResult.stoppingReason = 'diminishing_returns'
       break
     }

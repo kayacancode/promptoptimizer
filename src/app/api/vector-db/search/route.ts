@@ -48,7 +48,6 @@ export async function POST(request: NextRequest) {
       } as APIResponse, { status: 400 })
     }
 
-    console.log(`Searching global prompts for query: "${query}" by user: ${searchUserId}`)
     
     await globalPromptService.initialize()
     const results = await globalPromptService.searchGlobalPrompts(query, searchUserId, options)
@@ -118,7 +117,6 @@ export async function GET(request: NextRequest) {
       } as APIResponse, { status: 400 })
     }
 
-    console.log(`Getting prompt patterns for domain: ${domain}, type: ${type}`)
     
     await globalPromptService.initialize()
     

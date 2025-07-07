@@ -141,7 +141,6 @@ export class GitManager {
   }> {
     // In a real implementation, this would use git commands
     // For now, we'll simulate the commit
-    console.log(`Simulating commit: "${message}" for files:`, files)
     
     return {
       success: true,
@@ -154,7 +153,6 @@ export class GitManager {
     branchName: string
   }> {
     // In a real implementation, this would create a git branch
-    console.log(`Simulating branch creation: ${branchName}`)
     
     return {
       success: true,
@@ -167,7 +165,6 @@ export class GitManager {
     revertedFiles: string[]
   }> {
     // In a real implementation, this would revert git changes
-    console.log(`Simulating revert for files:`, files)
     
     return {
       success: true,
