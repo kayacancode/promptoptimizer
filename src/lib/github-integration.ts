@@ -6,9 +6,9 @@ export class GitHubIntegration {
   private repo: string | undefined
 
   constructor(apiKey?: string, owner?: string, repo?: string) {
-    this.apiKey = apiKey || process.env.GITHUB_API_KEY
-    this.owner = owner || process.env.GITHUB_OWNER
-    this.repo = repo || process.env.GITHUB_REPO
+    this.apiKey = apiKey
+    this.owner = owner
+    this.repo = repo
   }
 
   async createPullRequest(proposal: ChangeProposal): Promise<{
@@ -52,6 +52,12 @@ export class GitHubIntegration {
 
   private validateConfig(): boolean {
     return !!(this.apiKey && this.owner && this.repo)
+  }
+
+  setCredentials(apiKey: string, owner: string, repo: string) {
+    this.apiKey = apiKey
+    this.owner = owner
+    this.repo = repo
   }
 
   private async createBranch(branchName: string): Promise<{

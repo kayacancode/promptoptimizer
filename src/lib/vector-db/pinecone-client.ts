@@ -30,23 +30,42 @@ export interface SimilarPrompt {
 }
 
 export class PineconeClient {
-  private pinecone: Pinecone
-  private genAI: GoogleGenerativeAI
+  private pinecone: Pinecone | null
+  private genAI: GoogleGenerativeAI | null
   private indexName: string
   private embeddingModel: string
 
   constructor() {
-    this.pinecone = new Pinecone({
-      apiKey: process.env.PINECONE_API_KEY!,
-    })
-    
-    this.genAI = new GoogleGenerativeAI(process.env.GOOGLE_GEMINI_API_KEY!)
+    try {
+      if (process.env.PINECONE_API_KEY) {
+        this.pinecone = new Pinecone({
+          apiKey: process.env.PINECONE_API_KEY,
+        })
+      } else {
+        this.pinecone = null
+      }
+      
+      if (process.env.GOOGLE_GEMINI_API_KEY) {
+        this.genAI = new GoogleGenerativeAI(process.env.GOOGLE_GEMINI_API_KEY)
+      } else {
+        this.genAI = null
+      }
+    } catch (error) {
+      console.warn('Pinecone/Gemini initialization failed:', error)
+      this.pinecone = null
+      this.genAI = null
+    }
     
     this.indexName = process.env.PINECONE_INDEX_NAME || 'promptloop-prompts'
     this.embeddingModel = 'text-embedding-004'
   }
 
   async initializeIndex(): Promise<void> {
+    if (!this.pinecone) {
+      console.warn('Pinecone not initialized - skipping index initialization')
+      return
+    }
+    
     try {
       const indexes = await this.pinecone.listIndexes()
       const existingIndex = indexes.indexes?.find(index => index.name === this.indexName)

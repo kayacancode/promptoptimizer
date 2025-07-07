@@ -18,6 +18,9 @@
   --destructive: #ed5f74;
   --destructive-foreground: #ffffff;
   --ring: #635bff;
+  
+  /* SF Pro font */
+  --font-sf-pro: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif;
   --radius: 8px;
 }
 

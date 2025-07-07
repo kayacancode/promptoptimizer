@@ -17,5 +17,14 @@
     "createdAt": "2025-07-05T17:30:01.391Z",
     "lastUsed": "2025-07-05T17:44:46.323Z",
     "isActive": true
+  },
+  "pl_ae73fe61021744289a4d84c6": {
+    "key": "pl_ae73fe61021744289a4d84c6",
+    "tier": "trial",
+    "optimizationsUsed": 0,
+    "dailyLimit": 3,
+    "createdAt": "2025-07-06T12:38:55.448Z",
+    "lastUsed": "2025-07-06T12:38:55.450Z",
+    "isActive": true
   }
 }

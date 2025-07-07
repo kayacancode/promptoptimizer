@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { ConfigFile, OptimizationResult, EvaluationResult, TestCase, BenchmarkConfig } from '@/types'
 import { BenchmarkEvaluationService } from '@/lib/benchmarks/benchmark-evaluation-service'
 import { TestCaseGenerator } from '@/lib/test-case-generator'
+import { authenticateRequest } from '@/lib/auth-middleware'
+import { SupabaseAccessKeyManager } from '@/lib/supabase-access-keys'
 import Anthropic from '@anthropic-ai/sdk'
 
 const anthropic = new Anthropic({
@@ -10,6 +12,15 @@ const anthropic = new Anthropic({
 
 export async function POST(request: NextRequest) {
   try {
+    // Authenticate the request
+    const auth = await authenticateRequest(request)
+    if (!auth.authorized) {
+      return NextResponse.json({
+        success: false,
+        error: auth.error || 'Unauthorized'
+      }, { status: 401 })
+    }
+
     const { 
       originalConfig, 
       optimizationResult, 
@@ -61,6 +72,30 @@ export async function POST(request: NextRequest) {
         console.log('Benchmark evaluation completed successfully')
       } catch (error) {
         console.warn('Benchmark evaluation failed, proceeding with base evaluation:', error)
+      }
+    }
+
+    // Save the evaluation session to Supabase
+    if (auth.userId) {
+      try {
+        const sessionData = {
+          action: 'evaluate',
+          originalPrompt: originalConfig.content,
+          optimizedPrompt: optimizationResult.optimizedContent,
+          evaluationResult: finalResult,
+          timestamp: new Date().toISOString(),
+          config: {
+            includeBenchmarks,
+            benchmarkConfigs,
+            userTestCases: userTestCases?.length || 0,
+            skipTestCaseGeneration
+          }
+        }
+        
+        await SupabaseAccessKeyManager.saveSession(auth.userId, sessionData)
+      } catch (error) {
+        console.error('Failed to save evaluation session to Supabase:', error)
+        // Continue execution - don't fail the request if saving fails
       }
     }
     

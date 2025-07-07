@@ -1,9 +1,10 @@
 import { NextRequest } from 'next/server'
-import { accessKeyManager } from '@/lib/access-keys'
+import { SupabaseAccessKeyManager } from '@/lib/supabase-access-keys'
 
 export interface AuthResult {
   authorized: boolean
   key?: string
+  userId?: string
   remaining?: number
   error?: string
   tier?: string
@@ -31,7 +32,7 @@ export async function authenticateRequest(request: NextRequest): Promise<AuthRes
     }
 
     // Validate the key
-    const validation = await accessKeyManager.validateKey(accessKey)
+    const validation = await SupabaseAccessKeyManager.getKeyInfo(accessKey)
     if (!validation.valid) {
       return {
         authorized: false,
@@ -42,8 +43,9 @@ export async function authenticateRequest(request: NextRequest): Promise<AuthRes
     return {
       authorized: true,
       key: accessKey,
-      remaining: validation.accessKey!.dailyLimit - validation.usage!.optimizationsToday,
-      tier: validation.accessKey!.tier
+      userId: validation.info!.userId,
+      remaining: validation.info!.dailyLimit - validation.info!.dailyUsage,
+      tier: validation.info!.tier
     }
   } catch (error) {
     console.error('Authentication error:', error)
@@ -60,8 +62,39 @@ export async function requireOptimizationUsage(accessKey: string): Promise<{
   error?: string
 }> {
   try {
-    const result = await accessKeyManager.useOptimization(accessKey)
-    return result
+    // First get the current key info to check limits
+    const keyInfo = await SupabaseAccessKeyManager.getKeyInfo(accessKey)
+    if (!keyInfo.valid) {
+      return {
+        success: false,
+        error: keyInfo.error || 'Invalid access key'
+      }
+    }
+
+    // Check if user has reached daily limit
+    if (keyInfo.info!.dailyUsage >= keyInfo.info!.dailyLimit) {
+      return {
+        success: false,
+        remaining: 0,
+        error: `Daily limit of ${keyInfo.info!.dailyLimit} optimizations reached. Upgrade for more!`
+      }
+    }
+
+    // Increment usage
+    const incrementResult = await SupabaseAccessKeyManager.incrementUsage(accessKey)
+    if (!incrementResult) {
+      return {
+        success: false,
+        error: 'Failed to increment usage'
+      }
+    }
+
+    // Return updated remaining count
+    const remaining = keyInfo.info!.dailyLimit - keyInfo.info!.dailyUsage - 1
+    return {
+      success: true,
+      remaining
+    }
   } catch (error) {
     console.error('Usage tracking error:', error)
     return {

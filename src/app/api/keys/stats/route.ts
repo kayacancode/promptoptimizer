@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { accessKeyManager } from '@/lib/access-keys'
+import { SupabaseAccessKeyManager } from '@/lib/supabase-access-keys'
 import { APIResponse } from '@/types'
 
 export async function GET(request: NextRequest) {
@@ -17,9 +17,9 @@ export async function GET(request: NextRequest) {
       } as APIResponse, { status: 401 })
     }
 
-    const stats = accessKeyManager.getKeyStats()
-    const allKeys = accessKeyManager.getAllKeys()
-
+    const stats = await SupabaseAccessKeyManager.getKeyStats()
+    const allKeys = await SupabaseAccessKeyManager.getAllKeys()
+    
     // Recent activity (last 7 days)
     const sevenDaysAgo = new Date()
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
     )
 
     const recentActivity = allKeys.filter(key => 
-      new Date(key.lastUsed) > sevenDaysAgo
+      new Date(key.updatedAt) > sevenDaysAgo
     )
 
     return NextResponse.json({
@@ -43,33 +43,33 @@ export async function GET(request: NextRequest) {
             count: stats.trialKeys,
             avgOptimizations: Math.round(
               allKeys.filter(k => k.tier === 'trial')
-                    .reduce((sum, k) => sum + k.optimizationsUsed, 0) / stats.trialKeys || 0
+                    .reduce((sum, k) => sum + k.dailyUsage, 0) / stats.trialKeys || 0
             )
           },
           premium: {
             count: stats.premiumKeys,
             avgOptimizations: Math.round(
               allKeys.filter(k => k.tier === 'premium')
-                    .reduce((sum, k) => sum + k.optimizationsUsed, 0) / stats.premiumKeys || 0
+                    .reduce((sum, k) => sum + k.dailyUsage, 0) / stats.premiumKeys || 0
             )
           },
           unlimited: {
             count: stats.unlimitedKeys,
             avgOptimizations: Math.round(
               allKeys.filter(k => k.tier === 'unlimited')
-                    .reduce((sum, k) => sum + k.optimizationsUsed, 0) / stats.unlimitedKeys || 0
+                    .reduce((sum, k) => sum + k.dailyUsage, 0) / stats.unlimitedKeys || 0
             )
           }
         },
         topUsers: allKeys
-          .sort((a, b) => b.optimizationsUsed - a.optimizationsUsed)
+          .sort((a, b) => b.dailyUsage - a.dailyUsage)
           .slice(0, 10)
           .map(key => ({
             keyPrefix: key.key.substring(0, 8) + '...',
             tier: key.tier,
-            optimizationsUsed: key.optimizationsUsed,
-            email: key.email || 'No email',
-            lastUsed: key.lastUsed,
+            optimizationsUsed: key.dailyUsage,
+            email: 'No email', // Email is not available in this context
+            lastUsed: key.updatedAt,
             createdAt: key.createdAt
           }))
       },

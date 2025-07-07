@@ -238,6 +238,7 @@ export class AccessKeyManager {
     success: boolean
     error?: string
   }> {
+    const accessKeys = loadAccessKeys()
     const accessKey = accessKeys.get(key)
     if (!accessKey) {
       return { success: false, error: 'Key not found' }
@@ -251,16 +252,19 @@ export class AccessKeyManager {
     accessKey.tier = newTier
     accessKey.dailyLimit = limits[newTier]
     accessKeys.set(key, accessKey)
+    saveAccessKeys(accessKeys)
 
     return { success: true }
   }
 
   static async deactivateKey(key: string): Promise<boolean> {
+    const accessKeys = loadAccessKeys()
     const accessKey = accessKeys.get(key)
     if (!accessKey) return false
 
     accessKey.isActive = false
     accessKeys.set(key, accessKey)
+    saveAccessKeys(accessKeys)
     return true
   }
 

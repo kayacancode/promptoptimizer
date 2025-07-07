@@ -1,16 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { accessKeyManager } from '@/lib/access-keys'
+import { SupabaseAccessKeyManager } from '@/lib/supabase-access-keys'
 import { APIResponse } from '@/types'
 
 export async function POST(request: NextRequest) {
   try {
     const { email, tier = 'trial' }: { 
-      email?: string
+      email: string
       tier?: 'trial' | 'premium' | 'unlimited'
     } = await request.json()
 
-    // Validate email format if provided
-    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    // Email is now required
+    if (!email) {
+      return NextResponse.json({
+        success: false,
+        error: 'Email is required'
+      } as APIResponse, { status: 400 })
+    }
+
+    // Validate email format
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return NextResponse.json({
         success: false,
         error: 'Invalid email format'
@@ -18,7 +26,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create new access key
-    const accessKey = await accessKeyManager.createAccessKey(email, tier)
+    const accessKey = await SupabaseAccessKeyManager.createAccessKey(email, tier)
 
     return NextResponse.json({
       success: true,
@@ -26,10 +34,10 @@ export async function POST(request: NextRequest) {
         accessKey: accessKey.key,
         tier: accessKey.tier,
         dailyLimit: accessKey.dailyLimit,
-        email: accessKey.email,
+        userId: accessKey.userId,
         createdAt: accessKey.createdAt
       },
-      message: 'Access key generated successfully. Save this key - you\'ll need it to use PromptLoop!'
+      message: 'Access key generated successfully. Save this key - you\'ll need it to use AssitMe!'
     } as APIResponse)
   } catch (error) {
     console.error('Access key generation error:', error)
@@ -53,7 +61,7 @@ export async function GET(request: NextRequest) {
       } as APIResponse, { status: 400 })
     }
 
-    const keyInfo = await accessKeyManager.getKeyInfo(key)
+    const keyInfo = await SupabaseAccessKeyManager.getKeyInfo(key)
 
     if (!keyInfo.valid) {
       return NextResponse.json({

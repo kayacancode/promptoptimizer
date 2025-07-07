@@ -1,11 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useSession, signIn, signOut } from 'next-auth/react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { GitBranch, CheckCircle, AlertCircle, ExternalLink, RefreshCw, FileText, Folder } from 'lucide-react'
+import { GitBranch, CheckCircle, ExternalLink, RefreshCw, FileText, Folder, Github } from 'lucide-react'
 import { ConfigFile } from '@/types'
 
 interface GitHubStatus {
@@ -46,6 +47,7 @@ interface GitHubConnectionProps {
 }
 
 export function GitHubConnection({ onFileSelect }: GitHubConnectionProps) {
+  const { data: session, status: sessionStatus } = useSession()
   const [status, setStatus] = useState<GitHubStatus | null>(null)
   const [files, setFiles] = useState<GitHubFile[]>([])
   const [branches, setBranches] = useState<GitHubBranch[]>([])
@@ -222,12 +224,21 @@ export function GitHubConnection({ onFileSelect }: GitHubConnectionProps) {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {status?.connected ? (
+            {session ? (
               <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="h-5 w-5 text-green-500" />
-                  <span className="font-medium">Connected to GitHub</span>
-                  <Badge variant="secondary">Active</Badge>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="h-5 w-5 text-green-500" />
+                    <span className="font-medium">Connected as {session.user?.name}</span>
+                    <Badge variant="secondary">Active</Badge>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => signOut()}
+                  >
+                    Disconnect
+                  </Button>
                 </div>
                 
                 {status.repository && (
@@ -285,19 +296,23 @@ export function GitHubConnection({ onFileSelect }: GitHubConnectionProps) {
             ) : (
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
-                  <AlertCircle className="h-5 w-5 text-red-500" />
-                  <span className="font-medium">GitHub Connection Failed</span>
-                  <Badge variant="destructive">Disconnected</Badge>
+                  <Github className="h-5 w-5 text-white" />
+                  <span className="font-medium">Connect to GitHub</span>
+                  <Badge variant="outline">Not Connected</Badge>
                 </div>
                 
-                <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg">
-                  <p className="text-sm text-red-700 dark:text-red-400">
-                    {status?.error || 'Unable to connect to GitHub'}
+                <div className=" border border-gray-200 p-4 rounded-lg">
+                  <p className="text-sm text-black  mb-3">
+                    Connect your GitHub account to access your repositories and enable automated prompt optimization.
                   </p>
-                  <div className="mt-2 text-xs text-red-600 dark:text-red-500">
-                    <p>Repository: {status?.owner}/{process.env.NEXT_PUBLIC_GITHUB_REPO || 'voice-network'}</p>
-                    <p>API Key: {status?.hasApiKey ? 'Configured' : 'Missing'}</p>
-                  </div>
+                  <Button 
+                    onClick={() => signIn('github')}
+                    className="w-full"
+                    disabled={sessionStatus === 'loading'}
+                  >
+                    <Github className="h-4 w-4 mr-2" />
+                    {sessionStatus === 'loading' ? 'Connecting...' : 'Connect with GitHub'}
+                  </Button>
                 </div>
               </div>
             )}
@@ -306,7 +321,7 @@ export function GitHubConnection({ onFileSelect }: GitHubConnectionProps) {
       </Card>
 
       {/* File Browser */}
-      {status?.connected && (
+      {session && status?.connected && (
         <Card>
           <CardHeader>
             <CardTitle>Repository Files</CardTitle>

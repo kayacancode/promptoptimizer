@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { accessKeyManager } from '@/lib/access-keys'
+import { SupabaseAccessKeyManager } from '@/lib/supabase-access-keys'
 import { APIResponse } from '@/types'
 
 export async function POST(request: NextRequest) {
@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
       } as APIResponse, { status: 400 })
     }
 
-    const result = await accessKeyManager.upgradeKey(key, tier)
+    const result = await SupabaseAccessKeyManager.upgradeKey(key, tier)
 
     if (!result.success) {
       return NextResponse.json({
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get updated key info
-    const keyInfo = await accessKeyManager.getKeyInfo(key)
+    const keyInfo = await SupabaseAccessKeyManager.getKeyInfo(key)
 
     return NextResponse.json({
       success: true,

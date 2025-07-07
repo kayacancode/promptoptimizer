@@ -1,9 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { TestCaseGenerator } from '@/lib/test-case-generator'
 import { ConfigFile } from '@/types'
+import { authenticateRequest } from '@/lib/auth-middleware'
+import { SupabaseAccessKeyManager } from '@/lib/supabase-access-keys'
 
 export async function POST(request: NextRequest) {
   try {
+    // Authenticate the request
+    const auth = await authenticateRequest(request)
+    if (!auth.authorized) {
+      return NextResponse.json({
+        success: false,
+        error: auth.error || 'Unauthorized'
+      }, { status: 401 })
+    }
+
     const { 
       config,
       projectContext,
@@ -43,6 +54,26 @@ export async function POST(request: NextRequest) {
       realUserData: limitedTestCases.filter(tc => tc.metadata?.source === 'lmsys').length,
       domains: [...new Set(limitedTestCases.map(tc => tc.metadata?.domain).filter(Boolean))],
       averageScore: limitedTestCases.reduce((sum, tc) => sum + tc.score, 0) / limitedTestCases.length
+    }
+
+    // Save the test case generation session to Supabase
+    if (auth.userId) {
+      try {
+        const sessionData = {
+          action: 'test-cases-generate',
+          config: configFile,
+          projectContext,
+          testCaseCount,
+          generatedCount: limitedTestCases.length,
+          statistics: stats,
+          timestamp: new Date().toISOString()
+        }
+        
+        await SupabaseAccessKeyManager.saveSession(auth.userId, sessionData)
+      } catch (error) {
+        console.error('Failed to save test case generation session to Supabase:', error)
+        // Continue execution - don't fail the request if saving fails
+      }
     }
 
     return NextResponse.json({

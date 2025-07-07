@@ -5,14 +5,15 @@ import { PromptExtractor } from '@/lib/prompt-extractor'
 import { ContextAnalyzer } from '@/lib/context-analyzer'
 import { LLMProvider } from '@/lib/llm/llm-provider'
 import { globalPromptService } from '@/lib/vector-db/global-prompt-service'
-import { authenticateRequest, requireOptimizationUsage } from '@/lib/auth-middleware'
+import { authenticateTokenRequest, requireTokenUsage } from '@/lib/token-auth-middleware'
+import { UserAuthManager } from '@/lib/user-auth'
 
 const llmProvider = new LLMProvider()
 
 export async function POST(request: NextRequest) {
   try {
     // Authenticate the request
-    const auth = await authenticateRequest(request)
+    const auth = await authenticateTokenRequest(request)
     if (!auth.authorized) {
       return NextResponse.json({
         success: false,
@@ -20,13 +21,13 @@ export async function POST(request: NextRequest) {
       } as APIResponse, { status: 401 })
     }
 
-    // Check and consume optimization usage
-    const usageResult = await requireOptimizationUsage(auth.key!)
+    // Check and consume a token
+    const usageResult = await requireTokenUsage(auth.userId!)
     if (!usageResult.success) {
       return NextResponse.json({
         success: false,
-        error: usageResult.error || 'Usage limit exceeded',
-        remaining: usageResult.remaining || 0
+        error: usageResult.error || 'No tokens remaining',
+        remaining: usageResult.remainingTokens || 0
       } as APIResponse, { status: 429 })
     }
 
@@ -180,12 +181,29 @@ Optimize the following prompt using these principles and incorporate insights fr
       })
     }
 
+    // Save the prompt to user history
+    if (auth.userId) {
+      try {
+        // Extract the original prompt for saving
+        const originalPrompt = configFile.extractedPrompts && configFile.extractedPrompts.length > 0
+          ? configFile.extractedPrompts[0].content
+          : configFile.content
+
+        // Note: Token usage and prompt saving are already handled in requireTokenUsage
+        // The prompt was automatically saved when the token was used
+        console.log('Optimization completed for user:', auth.userId)
+      } catch (error) {
+        console.error('Failed to log optimization:', error)
+        // Continue execution - don't fail the request if logging fails
+      }
+    }
+
     return NextResponse.json({
       success: true,
       data: optimizationResult,
       usage: {
-        remaining: usageResult.remaining || 0,
-        tier: auth.tier || 'trial'
+        remaining: usageResult.remainingTokens || 0,
+        tier: 'beta'
       },
       message: 'Prompt optimization completed successfully'
     } as APIResponse)

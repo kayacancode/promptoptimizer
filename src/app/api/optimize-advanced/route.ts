@@ -3,10 +3,31 @@ import { ConfigFile, OptimizationResult, APIResponse } from '@/types'
 import { AutomatedPromptEngineering, APEConfig } from '@/lib/ape/automated-prompt-engineering'
 import { SafetyEvaluationSystem } from '@/lib/safety/safety-evaluation'
 import { LMSYSDatasetIntegration } from '@/lib/lmsys/dataset-integration'
+import { authenticateRequest, requireOptimizationUsage } from '@/lib/auth-middleware'
+import { SupabaseAccessKeyManager } from '@/lib/supabase-access-keys'
 
 export async function POST(request: NextRequest) {
   // Add overall timeout to prevent hanging
   const requestPromise = async () => {
+    // Authenticate the request
+    const auth = await authenticateRequest(request)
+    if (!auth.authorized) {
+      return NextResponse.json({
+        success: false,
+        error: auth.error || 'Unauthorized'
+      } as APIResponse, { status: 401 })
+    }
+
+    // Check and consume optimization usage
+    const usageResult = await requireOptimizationUsage(auth.key!)
+    if (!usageResult.success) {
+      return NextResponse.json({
+        success: false,
+        error: usageResult.error || 'Usage limit exceeded',
+        remaining: usageResult.remaining || 0
+      } as APIResponse, { status: 429 })
+    }
+
     const { 
       configFile, 
       includeContext,
@@ -179,9 +200,51 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Save the prompt and session to Supabase
+    if (auth.userId) {
+      try {
+        const originalPrompt = extractPromptFromConfig(configFile)
+
+        // Save the prompt interaction
+        await SupabaseAccessKeyManager.savePrompt(
+          auth.userId,
+          originalPrompt,
+          enhancedResult.optimizedContent,
+          'gemini-2.5-flash'
+        )
+
+        // Save the session data
+        const sessionData = {
+          action: 'optimize-advanced',
+          originalPrompt,
+          optimizedPrompt: enhancedResult.optimizedContent,
+          confidence: enhancedResult.confidence,
+          timestamp: new Date().toISOString(),
+          config: {
+            includeContext,
+            enableAPE,
+            enableSafetyEvaluation,
+            enableLMSYSIntegration,
+            complianceFrameworks,
+            apeConfig
+          },
+          advancedFeatures: enhancedResult.advancedFeatures
+        }
+        
+        await SupabaseAccessKeyManager.saveSession(auth.userId, sessionData)
+      } catch (error) {
+        console.error('Failed to save prompt/session to Supabase:', error)
+        // Continue execution - don't fail the request if saving fails
+      }
+    }
+
     return NextResponse.json({
       success: true,
       data: enhancedResult,
+      usage: {
+        remaining: usageResult.remaining || 0,
+        tier: auth.tier || 'trial'
+      },
       message: 'Advanced prompt optimization completed successfully'
     } as APIResponse)
   }
@@ -206,9 +269,16 @@ export async function POST(request: NextRequest) {
         const originalPrompt = extractPromptFromConfig(body.configFile)
         const fallbackResult = await basicOptimization(originalPrompt, body.configFile, body.includeContext || true)
         
+        // Try to get auth for fallback as well
+        const authResult = await authenticateRequest(request)
+        
         return NextResponse.json({
           success: true,
           data: fallbackResult,
+          usage: authResult.authorized ? {
+            remaining: authResult.remaining || 0,
+            tier: authResult.tier || 'trial'
+          } : undefined,
           message: 'Fast optimization completed (advanced features timed out)'
         } as APIResponse)
       } catch (fallbackError) {

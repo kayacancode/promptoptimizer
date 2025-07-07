@@ -26,7 +26,7 @@ import { BenchmarkSelector } from '@/components/BenchmarkSelector';
 import { EvalResults } from '@/components/EvalResults';
 import { PromptInput } from '@/components/PromptInput';
 import { SafetyEvaluation } from '@/components/SafetyEvaluation';
-import { AccessKeyManager } from '@/components/AccessKeyManager';
+import { UserAuthComponent } from '@/components/UserAuthManager';
 import { TestCase, BenchmarkConfig, EvaluationResult, ConfigFile, OptimizationResult } from '@/types';
 
 export default function Home() {
@@ -129,18 +129,11 @@ export default function Home() {
         size: 100
       };
       
-      // Get access key from localStorage
-      const accessKey = localStorage.getItem('promptloop_access_key')
-      if (!accessKey) {
-        throw new Error('Access key required. Please generate one in the Access Key section.')
-      }
-
       // Only optimize the prompt (fast step) with global prompt insights
       const optimizeResponse = await fetch('/api/optimize', {
         method: 'POST',
         headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessKey}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           configFile: configToOptimize,
@@ -270,7 +263,7 @@ export default function Home() {
               {/* Differentiation Section */}
               <div className="max-w-4xl mx-auto space-y-6">
                 <div className="text-center space-y-3">
-                  <h2 className="text-2xl font-semibold text-gray-900">Why PromptLoop is different</h2>
+                  <h2 className="text-2xl font-semibold text-gray-900">Why Assit Me is different</h2>
                   <p className="text-gray-600">Most prompt optimizers work in isolation. We learn from everyone.</p>
                 </div>
                 
@@ -305,14 +298,14 @@ export default function Home() {
                     </div>
                   </div>
 
-                  {/* PromptLoop */}
+                  {/* Assit Me */}
                   <div className="p-6 rounded-xl border border-green-100 bg-green-50">
                     <div className="space-y-4">
                       <div className="flex items-center space-x-2">
                         <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
                           <span className="text-green-600 text-sm">✨</span>
                         </div>
-                        <h3 className="font-semibold text-green-900">PromptLoop</h3>
+                        <h3 className="font-semibold text-green-900">Assit Me</h3>
                       </div>
                       <ul className="space-y-2 text-sm text-green-800">
                         <li className="flex items-start space-x-2">
@@ -380,7 +373,7 @@ export default function Home() {
                 <span className="text-sm text-gray-600">Trusted by developers and creators</span>
               </div>
             </div>
-            <AccessKeyManager />
+            <UserAuthComponent />
             <div className="text-center">
               <Button 
                 onClick={() => setCurrentStep(1)}
@@ -1044,7 +1037,7 @@ export default function Home() {
               <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
                 <span className="text-primary-foreground font-bold text-sm">P</span>
               </div>
-              <h1 className="text-xl font-semibold">PromptLoop</h1>
+              <h1 className="text-xl font-semibold font-sf-pro">Assit Me</h1>
             </div>
             <Badge variant="secondary" className="text-xs">
               Beta

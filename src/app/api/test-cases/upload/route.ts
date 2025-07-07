@@ -1,8 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { TestCase } from '@/types'
+import { authenticateRequest } from '@/lib/auth-middleware'
+import { SupabaseAccessKeyManager } from '@/lib/supabase-access-keys'
 
 export async function POST(request: NextRequest) {
   try {
+    // Authenticate the request
+    const auth = await authenticateRequest(request)
+    if (!auth.authorized) {
+      return NextResponse.json({
+        success: false,
+        error: auth.error || 'Unauthorized'
+      }, { status: 401 })
+    }
+
     const { testCases } = await request.json()
     
     if (!testCases || !Array.isArray(testCases)) {
@@ -13,6 +24,28 @@ export async function POST(request: NextRequest) {
     }
 
     const validation = validateTestCases(testCases)
+    
+    // Save the test case upload session to Supabase
+    if (auth.userId && validation.isValid) {
+      try {
+        const sessionData = {
+          action: 'test-cases-upload',
+          uploadedCount: testCases.length,
+          validatedCount: validation.testCases.length,
+          validation: {
+            errors: validation.errors,
+            warnings: validation.warnings,
+            statistics: validation.statistics
+          },
+          timestamp: new Date().toISOString()
+        }
+        
+        await SupabaseAccessKeyManager.saveSession(auth.userId, sessionData)
+      } catch (error) {
+        console.error('Failed to save test case upload session to Supabase:', error)
+        // Continue execution - don't fail the request if saving fails
+      }
+    }
     
     return NextResponse.json({
       success: validation.isValid,

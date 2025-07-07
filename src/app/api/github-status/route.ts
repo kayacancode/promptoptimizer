@@ -1,14 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { GitHubIntegration } from '@/lib/github-integration'
+import { getServerSession } from 'next-auth'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const github = new GitHubIntegration()
+    const session = await getServerSession()
+    
+    if (!session?.accessToken) {
+      return NextResponse.json({
+        success: false,
+        data: {
+          connected: false,
+          error: 'No GitHub authentication found',
+          hasApiKey: false
+        }
+      })
+    }
+
+    const searchParams = request.nextUrl.searchParams
+    const owner = searchParams.get('owner') || session.user?.name
+    const repo = searchParams.get('repo')
+    
+    if (!owner || !repo) {
+      return NextResponse.json({
+        success: false,
+        data: {
+          connected: false,
+          error: 'Repository owner and name required',
+          hasApiKey: true
+        }
+      })
+    }
     
     // Test GitHub connection by trying to fetch repository info
-    const response = await fetch(`https://api.github.com/repos/${process.env.GITHUB_OWNER}/${process.env.GITHUB_REPO}`, {
+    const response = await fetch(`https://api.github.com/repos/${owner}/${repo}`, {
       headers: {
-        'Authorization': `Bearer ${process.env.GITHUB_API_KEY}`,
+        'Authorization': `Bearer ${session.accessToken}`,
         'Accept': 'application/vnd.github.v3+json',
       }
     })
@@ -27,8 +53,8 @@ export async function GET() {
             default_branch: repoData.default_branch,
             private: repoData.private
           },
-          owner: process.env.GITHUB_OWNER,
-          hasApiKey: !!process.env.GITHUB_API_KEY
+          owner: owner,
+          hasApiKey: true
         }
       })
     } else {
@@ -42,9 +68,9 @@ export async function GET() {
       data: {
         connected: false,
         error: error instanceof Error ? error.message : 'Unknown error',
-        owner: process.env.GITHUB_OWNER || null,
-        repo: process.env.GITHUB_REPO || null,
-        hasApiKey: !!process.env.GITHUB_API_KEY
+        owner: owner || null,
+        repo: repo || null,
+        hasApiKey: !!session?.accessToken
       }
     })
   }

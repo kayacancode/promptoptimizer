@@ -1,16 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { globalPromptService } from '@/lib/vector-db/global-prompt-service'
 import { APIResponse } from '@/types'
+import { authenticateRequest } from '@/lib/auth-middleware'
+import { SupabaseAccessKeyManager } from '@/lib/supabase-access-keys'
 
 export async function POST(request: NextRequest) {
   try {
+    // Authenticate the request
+    const auth = await authenticateRequest(request)
+    if (!auth.authorized) {
+      return NextResponse.json({
+        success: false,
+        error: auth.error || 'Unauthorized'
+      } as APIResponse, { status: 401 })
+    }
+
     const { 
       query, 
       userId, 
       options = {} 
     }: {
       query: string
-      userId: string
+      userId?: string
       options?: {
         limit?: number
         minScore?: number
@@ -28,17 +39,40 @@ export async function POST(request: NextRequest) {
       } as APIResponse, { status: 400 })
     }
 
-    if (!userId) {
+    // Use userId from auth if not provided in request
+    const searchUserId = userId || auth.userId
+    if (!searchUserId) {
       return NextResponse.json({
         success: false,
         error: 'User ID is required'
       } as APIResponse, { status: 400 })
     }
 
-    console.log(`Searching global prompts for query: "${query}" by user: ${userId}`)
+    console.log(`Searching global prompts for query: "${query}" by user: ${searchUserId}`)
     
     await globalPromptService.initialize()
-    const results = await globalPromptService.searchGlobalPrompts(query, userId, options)
+    const results = await globalPromptService.searchGlobalPrompts(query, searchUserId, options)
+    
+    // Save the search session to Supabase
+    if (auth.userId) {
+      try {
+        const sessionData = {
+          action: 'vector-search',
+          query,
+          results: results.length,
+          timestamp: new Date().toISOString(),
+          config: {
+            options,
+            searchUserId
+          }
+        }
+        
+        await SupabaseAccessKeyManager.saveSession(auth.userId, sessionData)
+      } catch (error) {
+        console.error('Failed to save vector search session to Supabase:', error)
+        // Continue execution - don't fail the request if saving fails
+      }
+    }
     
     return NextResponse.json({
       success: true,
@@ -61,12 +95,23 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
+    // Authenticate the request
+    const auth = await authenticateRequest(request)
+    if (!auth.authorized) {
+      return NextResponse.json({
+        success: false,
+        error: auth.error || 'Unauthorized'
+      } as APIResponse, { status: 401 })
+    }
+
     const searchParams = request.nextUrl.searchParams
     const userId = searchParams.get('userId')
     const domain = searchParams.get('domain')
     const type = searchParams.get('type')
 
-    if (!userId) {
+    // Use userId from auth if not provided in query params
+    const searchUserId = userId || auth.userId
+    if (!searchUserId) {
       return NextResponse.json({
         success: false,
         error: 'User ID is required'
@@ -79,15 +124,56 @@ export async function GET(request: NextRequest) {
     
     let results
     if (domain) {
-      results = await globalPromptService.getPromptPatterns(domain, userId, type || undefined)
+      results = await globalPromptService.getPromptPatterns(domain, searchUserId, type || undefined)
     } else {
       // Get general statistics
       const stats = await globalPromptService.getGlobalStats()
+      
+      // Save the stats request session to Supabase
+      if (auth.userId) {
+        try {
+          const sessionData = {
+            action: 'vector-stats',
+            stats,
+            timestamp: new Date().toISOString(),
+            config: {
+              searchUserId
+            }
+          }
+          
+          await SupabaseAccessKeyManager.saveSession(auth.userId, sessionData)
+        } catch (error) {
+          console.error('Failed to save vector stats session to Supabase:', error)
+          // Continue execution - don't fail the request if saving fails
+        }
+      }
+      
       return NextResponse.json({
         success: true,
         data: stats,
         message: 'Global prompt statistics retrieved'
       } as APIResponse)
+    }
+
+    // Save the patterns request session to Supabase
+    if (auth.userId) {
+      try {
+        const sessionData = {
+          action: 'vector-patterns',
+          domain,
+          type,
+          results: results.length,
+          timestamp: new Date().toISOString(),
+          config: {
+            searchUserId
+          }
+        }
+        
+        await SupabaseAccessKeyManager.saveSession(auth.userId, sessionData)
+      } catch (error) {
+        console.error('Failed to save vector patterns session to Supabase:', error)
+        // Continue execution - don't fail the request if saving fails
+      }
     }
     
     return NextResponse.json({

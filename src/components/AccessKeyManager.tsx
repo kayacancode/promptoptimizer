@@ -7,7 +7,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Copy, Key, CheckCircle2, AlertCircle, Zap } from 'lucide-react'
+import { Copy, Key, CheckCircle2, AlertCircle, Zap, UserPlus } from 'lucide-react'
+import { supabase } from '@/lib/supabase'
 
 interface AccessKeyInfo {
   tier: string
@@ -21,19 +22,62 @@ interface AccessKeyInfo {
 export function AccessKeyManager() {
   const [accessKey, setAccessKey] = useState<string>('')
   const [email, setEmail] = useState<string>('')
+  const [password, setPassword] = useState<string>('')
   const [keyInfo, setKeyInfo] = useState<AccessKeyInfo | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [isSigningUp, setIsSigningUp] = useState(false)
+  const [isSignedUp, setIsSignedUp] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
 
-  // Load key from localStorage on mount
+  // Load key from localStorage and check auth on mount
   useEffect(() => {
-    const savedKey = localStorage.getItem('promptloop_access_key')
+    const savedKey = localStorage.getItem('assitme_access_key')
+    const isUserSignedUp = localStorage.getItem('assitme_signed_up')
+    
+    if (isUserSignedUp === 'true') {
+      setIsSignedUp(true)
+    }
+    
     if (savedKey) {
       setAccessKey(savedKey)
       loadKeyInfo(savedKey)
     }
   }, [])
+
+  const signUp = async () => {
+    if (!email || !password) {
+      setMessage({ type: 'error', text: 'Please enter both email and password' })
+      return
+    }
+
+    if (password.length < 6) {
+      setMessage({ type: 'error', text: 'Password must be at least 6 characters' })
+      return
+    }
+
+    setIsSigningUp(true)
+    setMessage(null)
+
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+      })
+
+      if (error) {
+        setMessage({ type: 'error', text: error.message })
+      } else {
+        setIsSignedUp(true)
+        localStorage.setItem('assitme_signed_up', 'true')
+        setMessage({ type: 'success', text: 'Account created successfully! Now generate your access key.' })
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Failed to create account' })
+    } finally {
+      setIsSigningUp(false)
+    }
+  }
 
   const generateKey = async () => {
     setIsGenerating(true)
@@ -51,7 +95,7 @@ export function AccessKeyManager() {
       if (result.success) {
         const newKey = result.data.accessKey
         setAccessKey(newKey)
-        localStorage.setItem('promptloop_access_key', newKey)
+        localStorage.setItem('assitme_access_key', newKey)
         
         setMessage({ type: 'success', text: result.message })
         await loadKeyInfo(newKey)
@@ -113,7 +157,63 @@ export function AccessKeyManager() {
 
   return (
     <div className="space-y-6">
-      {!accessKey ? (
+      {!isSignedUp ? (
+        /* Sign Up Form */
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <UserPlus className="h-5 w-5 mr-2" />
+              Sign Up to Get Started
+            </CardTitle>
+            <CardDescription>
+              Create your account to get a free access key and start optimizing prompts
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="your@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="Create a secure password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Must be at least 6 characters
+              </p>
+            </div>
+            
+            <Button 
+              onClick={signUp} 
+              disabled={isSigningUp || !email || !password}
+              className="w-full"
+            >
+              {isSigningUp ? 'Creating Account...' : 'Sign Up'}
+            </Button>
+            
+            <div className="text-sm text-muted-foreground">
+              <p>✨ <strong>What you'll get:</strong></p>
+              <ul className="list-disc list-inside mt-1 space-y-1">
+                <li>Free access key with 5 daily optimizations</li>
+                <li>Global prompt insights</li>
+                <li>AI-enhanced optimization</li>
+              </ul>
+            </div>
+          </CardContent>
+        </Card>
+      ) : !accessKey ? (
         /* Key Generation */
         <Card>
           <CardHeader>
@@ -122,14 +222,14 @@ export function AccessKeyManager() {
               Get Your Access Key
             </CardTitle>
             <CardDescription>
-              Generate a free access key to start optimizing prompts with PromptLoop
+              Generate your free access key to start optimizing prompts with PromptLoop
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email (optional)</Label>
+              <Label htmlFor="access-email">Email</Label>
               <Input
-                id="email"
+                id="access-email"
                 type="email"
                 placeholder="your@email.com"
                 value={email}
@@ -142,7 +242,7 @@ export function AccessKeyManager() {
             
             <Button 
               onClick={generateKey} 
-              disabled={isGenerating}
+              disabled={isGenerating || !email}
               className="w-full"
             >
               {isGenerating ? 'Generating...' : 'Generate Free Access Key'}
@@ -151,7 +251,7 @@ export function AccessKeyManager() {
             <div className="text-sm text-muted-foreground">
               <p>✨ <strong>Trial tier includes:</strong></p>
               <ul className="list-disc list-inside mt-1 space-y-1">
-                <li>3 prompt optimizations per day</li>
+                <li>5 prompt optimizations per day</li>
                 <li>Global prompt insights</li>
                 <li>AI-enhanced optimization</li>
               </ul>
