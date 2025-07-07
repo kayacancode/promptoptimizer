@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
 import { UserAuthManager } from '@/lib/user-auth'
 
 export interface TokenAuthResult {
@@ -10,13 +11,49 @@ export interface TokenAuthResult {
 
 export async function authenticateTokenRequest(request: NextRequest): Promise<TokenAuthResult> {
   try {
-    // Get the current user from Supabase Auth session
-    const user = await UserAuthManager.getCurrentUser()
+    // Get auth cookies from the request
+    const cookieHeader = request.headers.get('cookie')
     
-    if (!user) {
+    if (!cookieHeader) {
       return {
         authorized: false,
-        error: 'User not authenticated. Please sign in to continue.'
+        error: 'No authentication cookies found. Please sign in to continue.'
+      }
+    }
+
+    // Extract access token from cookies
+    const cookies = new Map()
+    cookieHeader.split(';').forEach(cookie => {
+      const [name, value] = cookie.trim().split('=')
+      cookies.set(name, value)
+    })
+
+    const accessToken = cookies.get('sb-access-token') || 
+                       cookies.get('supabase-auth-token') ||
+                       cookies.get('sb-' + process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/https?:\/\//, '').replace(/\./g, '-') + '-auth-token')
+
+    if (!accessToken) {
+      console.log('No access token found in cookies')
+      return {
+        authorized: false,
+        error: 'Authentication token not found. Please sign in to continue.'
+      }
+    }
+
+    // Create server-side Supabase client
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
+
+    // Get user using the access token
+    const { data: { user }, error } = await supabase.auth.getUser(accessToken)
+    
+    if (error || !user) {
+      console.error('Error getting user from token:', error)
+      return {
+        authorized: false,
+        error: 'Invalid authentication token. Please sign in again.'
       }
     }
 

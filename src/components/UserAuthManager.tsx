@@ -194,6 +194,7 @@ export function UserAuthComponent() {
               onClick={showSignIn ? signIn : signUp} 
               disabled={(showSignIn ? isSigningIn : isSigningUp) || !email || !password || (!showSignIn && !confirmPassword)}
               className="w-full"
+              size="lg"
             >
               {showSignIn 
                 ? (isSigningIn ? 'Signing In...' : 'Sign In')
@@ -205,11 +206,19 @@ export function UserAuthComponent() {
               <Button 
                 variant="link" 
                 onClick={() => {
-                  setShowSignIn(!showSignIn)
-                  setMessage(null)
+                  if (showSignIn) {
+                    setShowSignIn(false)
+                    setMessage(null)
+                    setPassword('')
+                    setConfirmPassword('')
+                  } else {
+                    // Redirect to dedicated sign-in page
+                    window.location.href = '/signin'
+                  }
                 }}
+                className="text-sm"
               >
-                {showSignIn ? 'Need an account? Sign up' : 'Already have an account? Sign in'}
+                {showSignIn ? 'Need an account? Sign up here' : 'Already have an account? Sign in here'}
               </Button>
             </div>
             

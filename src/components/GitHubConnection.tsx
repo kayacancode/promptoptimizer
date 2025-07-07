@@ -24,6 +24,22 @@ interface GitHubStatus {
   error?: string
 }
 
+interface GitHubRepository {
+  id: number
+  name: string
+  full_name: string
+  description: string
+  html_url: string
+  default_branch: string
+  private: boolean
+  updated_at: string
+  language: string
+  owner: {
+    login: string
+    avatar_url: string
+  }
+}
+
 interface GitHubFile {
   name: string
   path: string
@@ -49,6 +65,8 @@ interface GitHubConnectionProps {
 export function GitHubConnection({ onFileSelect }: GitHubConnectionProps) {
   const { data: session, status: sessionStatus } = useSession()
   const [status, setStatus] = useState<GitHubStatus | null>(null)
+  const [repositories, setRepositories] = useState<GitHubRepository[]>([])
+  const [selectedRepo, setSelectedRepo] = useState<GitHubRepository | null>(null)
   const [files, setFiles] = useState<GitHubFile[]>([])
   const [branches, setBranches] = useState<GitHubBranch[]>([])
   const [selectedBranch, setSelectedBranch] = useState<string>('')
@@ -56,6 +74,7 @@ export function GitHubConnection({ onFileSelect }: GitHubConnectionProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [isLoadingFiles, setIsLoadingFiles] = useState(false)
   const [isLoadingBranches, setIsLoadingBranches] = useState(false)
+  const [isLoadingRepos, setIsLoadingRepos] = useState(false)
 
   const fetchStatus = async () => {
     try {
@@ -75,12 +94,51 @@ export function GitHubConnection({ onFileSelect }: GitHubConnectionProps) {
     }
   }
 
+  const fetchRepositories = async () => {
+    if (!session) return
+    
+    setIsLoadingRepos(true)
+    try {
+      const response = await fetch('/api/github-repos')
+      const result = await response.json()
+      if (result.success) {
+        setRepositories(result.data.repositories)
+      }
+    } catch (error) {
+      console.error('Failed to fetch repositories:', error)
+    } finally {
+      setIsLoadingRepos(false)
+    }
+  }
+
+  const handleRepoSelect = (repo: GitHubRepository) => {
+    setSelectedRepo(repo)
+    setSelectedBranch(repo.default_branch)
+    setCurrentPath('')
+    setFiles([])
+    setBranches([])
+    
+    // Update status to show selected repository
+    setStatus(prev => prev ? {
+      ...prev,
+      repository: {
+        name: repo.name,
+        full_name: repo.full_name,
+        description: repo.description,
+        html_url: repo.html_url,
+        default_branch: repo.default_branch,
+        private: repo.private
+      },
+      connected: true
+    } : null)
+  }
+
   const fetchBranches = async () => {
-    if (!status?.connected) return
+    if (!status?.connected || !selectedRepo) return
     
     setIsLoadingBranches(true)
     try {
-      const response = await fetch('/api/github-branches')
+      const response = await fetch(`/api/github-branches?owner=${selectedRepo.owner.login}&repo=${selectedRepo.name}`)
       const result = await response.json()
       if (result.success) {
         setBranches(result.data.branches)
@@ -93,11 +151,11 @@ export function GitHubConnection({ onFileSelect }: GitHubConnectionProps) {
   }
 
   const fetchFiles = async (path: string = '') => {
-    if (!status?.connected || !selectedBranch) return
+    if (!status?.connected || !selectedBranch || !selectedRepo) return
     
     setIsLoadingFiles(true)
     try {
-      const response = await fetch(`/api/github-files?path=${encodeURIComponent(path)}&branch=${encodeURIComponent(selectedBranch)}`)
+      const response = await fetch(`/api/github-files?path=${encodeURIComponent(path)}&branch=${encodeURIComponent(selectedBranch)}&owner=${selectedRepo.owner.login}&repo=${selectedRepo.name}`)
       const result = await response.json()
       if (result.success) {
         setFiles(result.data.files)
@@ -180,10 +238,16 @@ export function GitHubConnection({ onFileSelect }: GitHubConnectionProps) {
   }, [])
 
   useEffect(() => {
-    if (status?.connected) {
+    if (session) {
+      fetchRepositories()
+    }
+  }, [session])
+
+  useEffect(() => {
+    if (status?.connected && selectedRepo) {
       fetchBranches()
     }
-  }, [status?.connected])
+  }, [status?.connected, selectedRepo])
 
   useEffect(() => {
     if (status?.connected && selectedBranch) {
@@ -241,7 +305,95 @@ export function GitHubConnection({ onFileSelect }: GitHubConnectionProps) {
                   </Button>
                 </div>
                 
-                {status.repository && (
+                {/* Repository Selection */}
+                {!selectedRepo && (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-medium">Select Repository</h4>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={fetchRepositories}
+                        disabled={isLoadingRepos}
+                      >
+                        {isLoadingRepos ? (
+                          <RefreshCw className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <RefreshCw className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                    
+                    {isLoadingRepos ? (
+                      <div className="flex items-center justify-center py-4">
+                        <RefreshCw className="h-4 w-4 animate-spin text-blue-500" />
+                        <span className="ml-2 text-sm">Loading repositories...</span>
+                      </div>
+                    ) : repositories.length > 0 ? (
+                      <div className="max-h-48 overflow-y-auto space-y-2">
+                        {repositories.map((repo) => (
+                          <div
+                            key={repo.id}
+                            className="p-3 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
+                            onClick={() => handleRepoSelect(repo)}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1">
+                                <div className="font-medium text-sm">{repo.full_name}</div>
+                                {repo.description && (
+                                  <div className="text-xs text-gray-600 mt-1">{repo.description}</div>
+                                )}
+                                <div className="flex items-center gap-2 mt-1">
+                                  {repo.language && (
+                                    <Badge variant="secondary" className="text-xs">{repo.language}</Badge>
+                                  )}
+                                  <Badge variant={repo.private ? "default" : "outline"} className="text-xs">
+                                    {repo.private ? 'Private' : 'Public'}
+                                  </Badge>
+                                </div>
+                              </div>
+                              <Button variant="outline" size="sm">
+                                Select
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-4 text-gray-500">
+                        <div className="text-sm">No repositories found</div>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={fetchRepositories}
+                          className="mt-2"
+                        >
+                          Refresh
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                {status?.repository && selectedRepo && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-medium">Selected Repository</h4>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => {
+                          setSelectedRepo(null)
+                          setStatus(prev => prev ? { ...prev, repository: undefined } : null)
+                        }}
+                      >
+                        Change Repository
+                      </Button>
+                    </div>
+                  </div>
+                )}
+                
+                {status?.repository && (
                   <div className=" p-4 border border-gray-200 rounded-lg space-y-2">
                     <div className="flex items-center justify-between text-black">
                       <h4 className="font-medium">{status.repository.full_name}</h4>

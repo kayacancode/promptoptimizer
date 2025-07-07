@@ -5,15 +5,57 @@ import { PromptExtractor } from '@/lib/prompt-extractor'
 import { ContextAnalyzer } from '@/lib/context-analyzer'
 import { LLMProvider } from '@/lib/llm/llm-provider'
 import { globalPromptService } from '@/lib/vector-db/global-prompt-service'
-import { authenticateTokenRequest, requireTokenUsage } from '@/lib/token-auth-middleware'
+import { createClient } from '@supabase/supabase-js'
 import { UserAuthManager } from '@/lib/user-auth'
 
 const llmProvider = new LLMProvider()
 
+// Server-side authentication helper
+async function authenticateRequest(request: NextRequest) {
+  try {
+    // Get the authorization header
+    const authHeader = request.headers.get('authorization')
+    
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return { authorized: false, error: 'Authorization header missing or invalid' }
+    }
+
+    const token = authHeader.substring(7)
+    
+    // Create server-side Supabase client
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
+
+    // Verify the token
+    const { data: { user }, error } = await supabase.auth.getUser(token)
+    
+    if (error || !user) {
+      return { authorized: false, error: 'Invalid authentication token' }
+    }
+
+    // Get user tokens
+    const userTokens = await UserAuthManager.getUserTokens(user.id)
+    if (!userTokens) {
+      return { authorized: false, error: 'User tokens not found' }
+    }
+
+    return {
+      authorized: true,
+      userId: user.id,
+      remainingTokens: userTokens.usageTokens
+    }
+  } catch (error) {
+    console.error('Authentication error:', error)
+    return { authorized: false, error: 'Authentication failed' }
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Authenticate the request
-    const auth = await authenticateTokenRequest(request)
+    const auth = await authenticateRequest(request)
     if (!auth.authorized) {
       return NextResponse.json({
         success: false,
@@ -22,7 +64,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check and consume a token
-    const usageResult = await requireTokenUsage(auth.userId!)
+    const usageResult = await UserAuthManager.useToken(auth.userId!)
     if (!usageResult.success) {
       return NextResponse.json({
         success: false,

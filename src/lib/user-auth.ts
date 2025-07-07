@@ -126,6 +126,58 @@ export class UserAuthManager {
     }
   }
 
+  // Server-side method to get user from request
+  static async getCurrentUserFromRequest(request: any): Promise<any> {
+    try {
+      // Get the authorization header or session cookie
+      const authHeader = request.headers.get('authorization')
+      const sessionCookie = request.cookies?.get('sb-access-token')?.value || 
+                          request.cookies?.get('supabase-auth-token')?.value
+
+      let accessToken = null
+      
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        accessToken = authHeader.substring(7)
+      } else if (sessionCookie) {
+        accessToken = sessionCookie
+      }
+
+      if (!accessToken) {
+        console.log('No access token found in request')
+        return null
+      }
+
+      // Create a server-side Supabase client with the access token
+      const { createClient } = await import('@supabase/supabase-js')
+      const serverClient = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY!,
+        {
+          auth: {
+            autoRefreshToken: false,
+            persistSession: false
+          },
+          global: {
+            headers: {
+              Authorization: `Bearer ${accessToken}`
+            }
+          }
+        }
+      )
+
+      const { data: { user }, error } = await serverClient.auth.getUser(accessToken)
+      if (error) {
+        console.error('Error getting user from token:', error)
+        return null
+      }
+      
+      return user
+    } catch (error) {
+      console.error('Error in getCurrentUserFromRequest:', error)
+      return null
+    }
+  }
+
   private static async initializeUserTokens(userId: string, email: string): Promise<void> {
     try {
       console.log('Starting initializeUserTokens for userId:', userId, 'email:', email)
@@ -505,6 +557,69 @@ CREATE TABLE IF NOT EXISTS users (
       return { 
         success: false, 
         error: error instanceof Error ? error.message : 'Failed to initialize tokens'
+      }
+    }
+  }
+
+  // Method to find or create user from GitHub session data
+  static async findOrCreateUserFromGitHub(githubEmail: string, githubName?: string): Promise<{
+    success: boolean
+    userId?: string
+    error?: string
+  }> {
+    try {
+      console.log('Finding or creating user from GitHub data:', { githubEmail, githubName })
+      
+      // First, try to find existing user by email
+      const { data: existingUser, error: findError } = await supabase
+        .from('users')
+        .select('id, email')
+        .eq('email', githubEmail)
+        .single()
+
+      if (findError && findError.code !== 'PGRST116') {
+        // PGRST116 is "not found" error, which is fine
+        console.error('Error finding user:', findError)
+        return { success: false, error: 'Database error finding user' }
+      }
+
+      if (existingUser) {
+        console.log('Found existing user:', existingUser.id)
+        return { success: true, userId: existingUser.id }
+      }
+
+      // User doesn't exist, create a new one
+      console.log('Creating new user for GitHub email:', githubEmail)
+      
+      // Generate a user ID (you might want to use GitHub user ID instead)
+      const userId = crypto.randomUUID()
+      
+      try {
+        await this.createUserRecord(userId, githubEmail)
+        
+        // Try to initialize tokens
+        try {
+          await this.initializeUserTokensOptional(userId)
+          console.log('User tokens initialized for new GitHub user')
+        } catch (tokenError) {
+          console.warn('Failed to initialize tokens for new GitHub user (this is optional):', tokenError)
+        }
+        
+        return { success: true, userId }
+        
+      } catch (createError) {
+        console.error('Failed to create user record for GitHub user:', createError)
+        return { 
+          success: false, 
+          error: `Failed to create user: ${createError instanceof Error ? createError.message : 'Unknown error'}`
+        }
+      }
+      
+    } catch (error) {
+      console.error('Error in findOrCreateUserFromGitHub:', error)
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Failed to process GitHub user'
       }
     }
   }

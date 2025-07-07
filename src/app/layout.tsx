@@ -1,43 +1,33 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import { SessionProvider } from "@/components/providers/SessionProvider";
-import "./globals.css";
+import type { Metadata } from 'next'
+import { Inter } from 'next/font/google'
+import './globals.css'
+import { SessionProvider } from '@/components/providers/SessionProvider'
+import { Footer } from '@/components/Footer'
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
-// SF Pro font (system font)
-const sfPro = {
-  variable: "--font-sf-pro",
-};
+const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: "Assit Me - AI-Powered Prompt Optimization",
-  description: "Optimize your AI prompts with automated testing, benchmarking, and GitHub integration",
-};
+  title: 'bestmate - AI Prompt Optimization',
+  description: 'Optimize your AI prompts with vector intelligence. Save money, time, and get better results.',
+}
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: {
+  children: React.ReactNode
+}) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} ${sfPro.variable} antialiased`}
-        suppressHydrationWarning={true}
-      >
+      <body className={inter.className}>
         <SessionProvider>
-          {children}
+          <div className="min-h-screen flex flex-col">
+            <main className="flex-1">
+              {children}
+            </main>
+            <Footer />
+          </div>
         </SessionProvider>
       </body>
     </html>
-  );
+  )
 }

@@ -49,58 +49,50 @@ export async function GET(request: NextRequest) {
       }, { status: 401 })
     }
 
-    const searchParams = request.nextUrl.searchParams
-    const path = searchParams.get('path') || ''
-    const branch = searchParams.get('branch') || 'main'
-    const owner = searchParams.get('owner')
-    const repo = searchParams.get('repo')
-    
-    if (!owner || !repo) {
-      return NextResponse.json({
-        success: false,
-        error: 'Repository owner and name are required'
-      }, { status: 400 })
-    }
-    
-    // Fetch files from GitHub repository
-    const response = await fetch(
-      `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`,
-      {
-        headers: {
-          'Authorization': `Bearer ${session.accessToken}`,
-          'Accept': 'application/vnd.github.v3+json',
-        }
+    // Fetch user's repositories
+    const response = await fetch('https://api.github.com/user/repos?sort=updated&per_page=100', {
+      headers: {
+        'Authorization': `Bearer ${session.accessToken}`,
+        'Accept': 'application/vnd.github.v3+json',
       }
-    )
+    })
 
     if (!response.ok) {
       throw new Error(`GitHub API error: ${response.status} ${response.statusText}`)
     }
 
-    const files = await response.json()
+    const repos = await response.json()
     
-    // Filter for prompt-related files and directories
-    const promptFiles = Array.isArray(files) ? files.filter(file => {
-      const isPromptFile = file.name.match(/\.(yaml|yml|json|ts|tsx|js|jsx|py|md|txt)$/i)
-      const isPromptDir = file.type === 'dir' && file.name.match(/(prompt|config|system|template|agent|ai|llm)/i)
-      const isCodeWithPrompts = file.name.match(/(prompt|system|agent|ai|llm|chat|conversation)/i)
-      return isPromptFile || isPromptDir || isCodeWithPrompts
-    }) : []
+    // Filter and format repositories
+    const formattedRepos = repos.map((repo: any) => ({
+      id: repo.id,
+      name: repo.name,
+      full_name: repo.full_name,
+      description: repo.description,
+      html_url: repo.html_url,
+      default_branch: repo.default_branch,
+      private: repo.private,
+      updated_at: repo.updated_at,
+      language: repo.language,
+      owner: {
+        login: repo.owner.login,
+        avatar_url: repo.owner.avatar_url
+      }
+    }))
 
     return NextResponse.json({
       success: true,
       data: {
-        files: promptFiles,
-        path,
-        total: promptFiles.length
+        repositories: formattedRepos,
+        total: formattedRepos.length
       }
     })
 
   } catch (error) {
-    console.error('GitHub files error:', error)
+    console.error('GitHub repositories error:', error)
     return NextResponse.json({
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to fetch files'
+      error: error instanceof Error ? error.message : 'Failed to fetch repositories'
     }, { status: 500 })
   }
-}
+} 

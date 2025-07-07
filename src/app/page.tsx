@@ -28,6 +28,7 @@ import { PromptInput } from '@/components/PromptInput';
 import { SafetyEvaluation } from '@/components/SafetyEvaluation';
 import { UserAuthComponent } from '@/components/UserAuthManager';
 import { TestCase, BenchmarkConfig, EvaluationResult, ConfigFile, OptimizationResult } from '@/types';
+import { supabase } from '@/lib/supabase';
 
 export default function Home() {
   const [currentStep, setCurrentStep] = useState(0);
@@ -129,16 +130,24 @@ export default function Home() {
         size: 100
       };
       
+      // Get the current user session for authentication
+      const { data: { session } } = await supabase.auth.getSession()
+      
+      if (!session?.access_token) {
+        throw new Error('Please sign in to continue');
+      }
+
       // Only optimize the prompt (fast step) with global prompt insights
       const optimizeResponse = await fetch('/api/optimize', {
         method: 'POST',
         headers: { 
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
         },
         body: JSON.stringify({
           configFile: configToOptimize,
           includeContext,
-          userId: 'user-' + Math.random().toString(36).substr(2, 9), // Generate a user ID for this session
+          userId: session.user.id,
           useGlobalPrompts: true, // Enable global prompt pool
           enableAPE: true,
           enableSafetyEvaluation: true,
@@ -175,10 +184,20 @@ export default function Home() {
     
     setIsRunning(true);
     try {
+      // Get the current user session for authentication
+      const { data: { session } } = await supabase.auth.getSession()
+      
+      if (!session?.access_token) {
+        throw new Error('Please sign in to continue');
+      }
+
       // Run evaluation on the optimized prompt
       const response = await fetch('/api/evaluate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
         body: JSON.stringify({
           originalConfig: originalConfig,
           optimizationResult: optimizationResult,
@@ -205,183 +224,191 @@ export default function Home() {
     switch (currentStep) {
       case 0:
         return (
-          <div className="space-y-6">
-            <div className="text-center space-y-8">
-              {/* Hero Section */}
-              <div className="space-y-6">
-                <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-black to-gray-600 bg-clip-text text-transparent">
-                  Optimize your prompts.
-                  <br />
-                  <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                    Save money & time.
-                  </span>
-                </h1>
-                <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
-                  Transform inefficient prompts into high-performing ones. Reduce token usage, cut API costs, and get better results with AI-powered optimization.
-                </p>
+          <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 relative overflow-hidden">
+            {/* Animated background elements */}
+            <div className="absolute inset-0 overflow-hidden">
+              <div className="absolute -inset-10 opacity-50">
+                <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"></div>
+                <div className="absolute top-3/4 right-1/4 w-96 h-96 bg-pink-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse animation-delay-2000"></div>
+                <div className="absolute bottom-1/4 left-1/3 w-96 h-96 bg-indigo-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse animation-delay-4000"></div>
               </div>
-
-              {/* Key Benefits - Cursor style */}
-              <div className="grid md:grid-cols-3 gap-4 max-w-4xl mx-auto">
-                <div className="group hover:bg-gray-50 p-6 rounded-xl border border-gray-200 transition-all hover:shadow-sm">
-                  <div className="space-y-3">
-                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                      <Zap className="h-5 w-5 text-blue-600" />
-                    </div>
-                    <h3 className="font-semibold text-gray-900">Reduce Token Costs</h3>
-                    <p className="text-sm text-gray-600 leading-relaxed">
-                      Shorter, more effective prompts mean fewer tokens and lower API bills. Save up to 50% on your AI costs.
-                    </p>
-                  </div>
-                </div>
-                
-                <div className="group hover:bg-gray-50 p-6 rounded-xl border border-gray-200 transition-all hover:shadow-sm">
-                  <div className="space-y-3">
-                    <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                      <BarChart3 className="h-5 w-5 text-green-600" />
-                    </div>
-                    <h3 className="font-semibold text-gray-900">Better Results</h3>
-                    <p className="text-sm text-gray-600 leading-relaxed">
-                      Get more accurate, relevant responses with optimized prompts trained on successful patterns.
-                    </p>
-                  </div>
-                </div>
-                
-                <div className="group hover:bg-gray-50 p-6 rounded-xl border border-gray-200 transition-all hover:shadow-sm">
-                  <div className="space-y-3">
-                    <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                      <RefreshCw className="h-5 w-5 text-purple-600" />
-                    </div>
-                    <h3 className="font-semibold text-gray-900">Stop Wasting Time</h3>
-                    <p className="text-sm text-gray-600 leading-relaxed">
-                      Skip the trial-and-error. Get optimized prompts in seconds instead of hours of manual testing.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Differentiation Section */}
-              <div className="max-w-4xl mx-auto space-y-6">
-                <div className="text-center space-y-3">
-                  <h2 className="text-2xl font-semibold text-gray-900">Why Assit Me is different</h2>
-                  <p className="text-gray-600">Most prompt optimizers work in isolation. We learn from everyone.</p>
-                </div>
-                
-                <div className="grid md:grid-cols-2 gap-6">
-                  {/* Traditional Optimizers */}
-                  <div className="p-6 rounded-xl border border-red-100 bg-red-50">
-                    <div className="space-y-4">
-                      <div className="flex items-center space-x-2">
-                        <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center">
-                          <span className="text-red-600 text-sm">❌</span>
-                        </div>
-                        <h3 className="font-semibold text-red-900">Traditional Optimizers</h3>
-                      </div>
-                      <ul className="space-y-2 text-sm text-red-800">
-                        <li className="flex items-start space-x-2">
-                          <span className="text-red-400 mt-1">•</span>
-                          <span>Work with generic rules and templates</span>
-                        </li>
-                        <li className="flex items-start space-x-2">
-                          <span className="text-red-400 mt-1">•</span>
-                          <span>Start from scratch every time</span>
-                        </li>
-                        <li className="flex items-start space-x-2">
-                          <span className="text-red-400 mt-1">•</span>
-                          <span>Limited by pre-built knowledge</span>
-                        </li>
-                        <li className="flex items-start space-x-2">
-                          <span className="text-red-400 mt-1">•</span>
-                          <span>No learning from real user success</span>
-                        </li>
-                      </ul>
-                    </div>
-                  </div>
-
-                  {/* Assit Me */}
-                  <div className="p-6 rounded-xl border border-green-100 bg-green-50">
-                    <div className="space-y-4">
-                      <div className="flex items-center space-x-2">
-                        <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-                          <span className="text-green-600 text-sm">✨</span>
-                        </div>
-                        <h3 className="font-semibold text-green-900">Assit Me</h3>
-                      </div>
-                      <ul className="space-y-2 text-sm text-green-800">
-                        <li className="flex items-start space-x-2">
-                          <span className="text-green-400 mt-1">•</span>
-                          <span><strong>Global intelligence:</strong> Learn from every optimization</span>
-                        </li>
-                        <li className="flex items-start space-x-2">
-                          <span className="text-green-400 mt-1">•</span>
-                          <span><strong>Vector similarity:</strong> Find proven patterns that work</span>
-                        </li>
-                        <li className="flex items-start space-x-2">
-                          <span className="text-green-400 mt-1">•</span>
-                          <span><strong>Community wisdom:</strong> Benefit from real success stories</span>
-                        </li>
-                        <li className="flex items-start space-x-2">
-                          <span className="text-green-400 mt-1">•</span>
-                          <span><strong>Constantly improving:</strong> Gets smarter with every user</span>
-                        </li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Technical Advantage */}
-              <div className="max-w-3xl mx-auto">
-                <div className="p-8 rounded-2xl bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-100">
-                  <div className="text-center space-y-4">
-                    <div className="flex items-center justify-center space-x-2">
-                      <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
-                        <Code2 className="h-4 w-4 text-white" />
-                      </div>
-                      <h3 className="text-xl font-semibold text-gray-900">Powered by Vector Intelligence</h3>
-                    </div>
-                    <p className="text-gray-700 leading-relaxed">
-                      Our Pinecone-powered vector database analyzes semantic patterns across all prompts, 
-                      finding the most effective strategies for your specific use case. It's like having 
-                      an AI consultant that's learned from every successful prompt optimization ever made.
-                    </p>
-                    <div className="flex items-center justify-center space-x-6 text-sm text-gray-600">
-                      <div className="flex items-center space-x-1">
-                        <CheckCircle2 className="h-4 w-4 text-green-500" />
-                        <span>Semantic similarity matching</span>
-                      </div>
-                      <div className="flex items-center space-x-1">
-                        <CheckCircle2 className="h-4 w-4 text-green-500" />
-                        <span>Real-time pattern learning</span>
-                      </div>
-                      <div className="flex items-center space-x-1">
-                        <CheckCircle2 className="h-4 w-4 text-green-500" />
-                        <span>Cross-domain insights</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Social Proof - Simple */}
-              <div className="inline-flex items-center space-x-2 bg-gray-50 px-4 py-2 rounded-full border">
-                <div className="flex -space-x-1">
-                  <div className="w-6 h-6 rounded-full bg-blue-500"></div>
-                  <div className="w-6 h-6 rounded-full bg-green-500"></div>
-                  <div className="w-6 h-6 rounded-full bg-purple-500"></div>
-                </div>
-                <span className="text-sm text-gray-600">Trusted by developers and creators</span>
+              
+              {/* Grid pattern */}
+              <div className="absolute inset-0 bg-gradient-to-r from-purple-900/20 to-transparent">
+                <div className="absolute inset-0" style={{
+                  backgroundImage: `linear-gradient(rgba(147, 51, 234, 0.1) 1px, transparent 1px),
+                                   linear-gradient(90deg, rgba(147, 51, 234, 0.1) 1px, transparent 1px)`,
+                  backgroundSize: '50px 50px'
+                }}></div>
               </div>
             </div>
-            <UserAuthComponent />
-            <div className="text-center">
-              <Button 
-                onClick={() => setCurrentStep(1)}
-                className="mt-4"
-              >
-                Continue to Prompt Optimization
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
+
+            <div className="relative z-10 container mx-auto px-6 py-8">
+              {/* Top Navigation */}
+              <nav className="flex items-center justify-between mb-16">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
+                    <span className="text-white font-bold text-lg">B</span>
+                  </div>
+                  <span className="text-white text-xl font-semibold">bestmate</span>
+                </div>
+                <div className="flex items-center space-x-6">
+                  <a href="#features" className="text-gray-300 hover:text-white transition-colors">Features</a>
+                  <a href="#pricing" className="text-gray-300 hover:text-white transition-colors">Pricing</a>
+                  <a href="#docs" className="text-gray-300 hover:text-white transition-colors">Docs</a>
+                  <Button variant="outline" className="border-purple-500 text-purple-400 hover:bg-purple-500 hover:text-white">
+                    Sign In
+                  </Button>
+                </div>
+              </nav>
+
+              <div className="grid lg:grid-cols-2 gap-12 items-center min-h-[80vh]">
+                {/* Left Column - Content */}
+                <div className="space-y-8">
+                  <div className="space-y-6">
+                    <div className="inline-flex items-center px-4 py-2 bg-purple-900/50 border border-purple-500/30 rounded-full text-purple-300 text-sm font-medium">
+                      <span className="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse"></span>
+                      Now in Beta
+                    </div>
+                    
+                    <h1 className="text-5xl lg:text-7xl font-bold leading-tight">
+                      <span className="text-white">Optimize</span>
+                      <br />
+                      <span className="text-white">your </span>
+                      <span className="bg-gradient-to-r from-red-500 to-pink-500 bg-clip-text text-transparent">prompts</span>
+                      <br />
+                      <span className="text-gray-400 text-4xl lg:text-5xl">with AI intelligence</span>
+                    </h1>
+                    
+                    <p className="text-xl text-gray-300 max-w-lg leading-relaxed">
+                      Transform inefficient prompts into high-performing ones. 
+                      <span className="text-red-400 font-semibold"> Reduce costs by 50%</span> and get better results with vector-powered optimization.
+                    </p>
+                  </div>
+
+                  {/* CTAs */}
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    <Button 
+                      size="lg"
+                      className="bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white border-0 px-8 py-6 text-lg font-semibold rounded-xl shadow-lg hover:shadow-red-500/25 transition-all"
+                      onClick={() => setCurrentStep(1)}
+                    >
+                      Start Optimizing
+                      <ArrowRight className="ml-2 h-5 w-5" />
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="lg"
+                      className="border-purple-500 text-purple-400 hover:bg-purple-500 hover:text-white px-8 py-6 text-lg font-semibold rounded-xl"
+                    >
+                      View Demo
+                      <Play className="ml-2 h-5 w-5" />
+                    </Button>
+                  </div>
+
+                  {/* Stats */}
+                  <div className="flex items-center space-x-8 pt-8">
+                    <div className="text-center">
+                      <div className="text-3xl font-bold text-white">50%</div>
+                      <div className="text-sm text-gray-400">Cost Reduction</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-3xl font-bold text-white">10k+</div>
+                      <div className="text-sm text-gray-400">Prompts Optimized</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-3xl font-bold text-white">99%</div>
+                      <div className="text-sm text-gray-400">Accuracy</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Column - UI Mockup */}
+                <div className="relative">
+                  <div className="relative bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl border border-purple-500/20 shadow-2xl overflow-hidden">
+                    {/* Window chrome */}
+                    <div className="flex items-center px-6 py-4 bg-slate-800 border-b border-purple-500/20">
+                      <div className="flex space-x-2">
+                        <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                        <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                        <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                      </div>
+                      <div className="flex-1 text-center">
+                        <div className="bg-slate-700 rounded-lg px-4 py-1 text-gray-300 text-sm max-w-xs mx-auto">
+                          bestmate.io/optimize
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* App content */}
+                    <div className="p-6 space-y-4">
+                      {/* Header */}
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-white font-semibold">Prompt Optimization</h3>
+                        <div className="flex items-center space-x-2">
+                          <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                          <span className="text-green-400 text-sm">Live</span>
+                        </div>
+                      </div>
+
+                      {/* Input section */}
+                      <div className="bg-slate-700 rounded-lg p-4 space-y-3">
+                        <div className="text-gray-300 text-sm font-medium">Original Prompt</div>
+                        <div className="bg-slate-800 rounded p-3 text-gray-400 text-sm font-mono">
+                          Write a blog post about AI
+                        </div>
+                      </div>
+
+                      {/* Output section */}
+                      <div className="bg-gradient-to-r from-purple-900/20 to-pink-900/20 rounded-lg p-4 space-y-3 border border-purple-500/20">
+                        <div className="flex items-center justify-between">
+                          <div className="text-purple-300 text-sm font-medium">Optimized Result</div>
+                          <div className="bg-green-500 text-white text-xs px-2 py-1 rounded-full">+87% Better</div>
+                        </div>
+                        <div className="bg-slate-800 rounded p-3 text-green-400 text-sm font-mono">
+                          Create a comprehensive 1500-word blog post about artificial intelligence, focusing on recent developments, practical applications, and future implications. Include examples, use an engaging tone, and structure with clear headings.
+                        </div>
+                      </div>
+
+                      {/* Stats */}
+                      <div className="grid grid-cols-3 gap-3 pt-2">
+                        <div className="bg-slate-700 rounded-lg p-3 text-center">
+                          <div className="text-white font-bold">-45%</div>
+                          <div className="text-gray-400 text-xs">Tokens</div>
+                        </div>
+                        <div className="bg-slate-700 rounded-lg p-3 text-center">
+                          <div className="text-green-400 font-bold">+89%</div>
+                          <div className="text-gray-400 text-xs">Quality</div>
+                        </div>
+                        <div className="bg-slate-700 rounded-lg p-3 text-center">
+                          <div className="text-purple-400 font-bold">2.3s</div>
+                          <div className="text-gray-400 text-xs">Speed</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Floating elements */}
+                  <div className="absolute -top-4 -right-4 w-24 h-24 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full opacity-20 blur-xl animate-pulse"></div>
+                  <div className="absolute -bottom-4 -left-4 w-32 h-32 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full opacity-20 blur-xl animate-pulse animation-delay-2000"></div>
+                </div>
+              </div>
+
+              {/* Auth Section */}
+              <div className="mt-16 max-w-md mx-auto">
+                <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-8 shadow-2xl [&_.text-muted-foreground]:text-gray-200 [&_.text-sm]:text-gray-200 [&_.text-xs]:text-gray-300 [&_h2]:text-white [&_h3]:text-white [&_label]:text-white [&_p]:text-gray-200 [&_input]:bg-white/20 [&_input]:border-white/30 [&_input]:text-white [&_input::placeholder]:text-gray-300 [&_button]:bg-white/20 [&_button]:hover:bg-white/30 [&_button]:border-white/30">
+                  <UserAuthComponent />
+                </div>
+                <div className="text-center mt-8">
+                  <Button 
+                    onClick={() => setCurrentStep(1)}
+                    className="bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white border-0 px-8 py-4 text-lg font-semibold rounded-xl"
+                  >
+                    Continue to Prompt Optimization
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
         );
@@ -699,7 +726,7 @@ export default function Home() {
                     {isRunning ? (
                       <div className="flex items-center space-x-2">
                         <RefreshCw className="h-4 w-4 animate-spin" />
-                        <span>Running Evaluation...</span>
+                        <span>Running Evaluation... (takes 1-2 min)</span>
                       </div>
                     ) : (
                       <>
@@ -760,7 +787,10 @@ export default function Home() {
                   className="btn-primary"
                 >
                   {isRunning ? (
-                    <>Running Evaluation...</>
+                    <div className="flex items-center space-x-2">
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                      <span>Running Evaluation... (takes 1-2 min)</span>
+                    </div>
                   ) : (
                     <>
                       Run Performance Evaluation
@@ -1028,78 +1058,82 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-sm">P</span>
+    <div className={currentStep === 0 ? "min-h-screen" : "min-h-screen bg-background"}>
+      {/* Header - only show when not on landing page */}
+      {currentStep !== 0 && (
+        <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
+          <div className="container mx-auto px-6 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                  <span className="text-primary-foreground font-bold text-sm">B</span>
+                </div>
+                <h1 className="text-xl font-semibold">bestmate</h1>
               </div>
-              <h1 className="text-xl font-semibold font-sf-pro">Assit Me</h1>
+              <Badge variant="secondary" className="text-xs">
+                Beta
+              </Badge>
             </div>
-            <Badge variant="secondary" className="text-xs">
-              Beta
-            </Badge>
           </div>
-        </div>
-      </header>
+        </header>
+      )}
 
       {/* Main Content */}
-      <main className="container mx-auto px-6 py-8 max-w-6xl">
-        {/* Progress Steps */}
-        <div className="mb-12">
-          <div className="flex items-center justify-between relative">
-            {/* Progress Line */}
-            <div className="absolute left-0 right-0 top-5 h-0.5 bg-border" />
-            <div 
-              className="absolute left-0 top-5 h-0.5 bg-primary transition-all duration-500"
-              style={{ width: `${((currentStep - 1) / (steps.length - 1)) * 100}%` }}
-            />
-            
-            {/* Step Indicators */}
-            {steps.map((step, index) => {
-              const Icon = step.icon;
-              const isActive = step.id === currentStep;
-              const isCompleted = step.id < currentStep || step.completed;
+      <main className={currentStep === 0 ? "" : "container mx-auto px-6 py-8 max-w-6xl"}>
+        {/* Progress Steps - only show when not on landing page */}
+        {currentStep !== 0 && (
+          <div className="mb-12">
+            <div className="flex items-center justify-between relative">
+              {/* Progress Line */}
+              <div className="absolute left-0 right-0 top-5 h-0.5 bg-border" />
+              <div 
+                className="absolute left-0 top-5 h-0.5 bg-primary transition-all duration-500"
+                style={{ width: `${((currentStep - 1) / (steps.length - 1)) * 100}%` }}
+              />
               
-              return (
-                <button
-                  key={step.id}
-                  onClick={() => setCurrentStep(step.id)}
-                  className={`relative z-10 flex flex-col items-center group ${
-                    step.id <= currentStep ? 'cursor-pointer' : 'cursor-not-allowed'
-                  }`}
-                  disabled={step.id > currentStep && !steps[step.id - 2]?.completed}
-                >
-                  <div className={`
-                    w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300
-                    ${isActive ? 'bg-primary text-primary-foreground scale-110 shadow-lg' : 
-                      isCompleted ? 'bg-primary text-primary-foreground' : 
-                      'bg-card border-2 border-border text-muted-foreground'}
-                  `}>
-                    {isCompleted && !isActive ? (
-                      <CheckCircle2 className="h-5 w-5" />
-                    ) : (
-                      <Icon className="h-5 w-5" />
-                    )}
-                  </div>
-                  <span className={`
-                    mt-2 text-xs font-medium transition-colors whitespace-nowrap
-                    ${isActive ? 'text-foreground' : 
-                      isCompleted ? 'text-foreground' : 'text-muted-foreground'}
-                  `}>
-                    {step.name}
-                  </span>
-                </button>
-              );
-            })}
+              {/* Step Indicators */}
+              {steps.map((step, index) => {
+                const Icon = step.icon;
+                const isActive = step.id === currentStep;
+                const isCompleted = step.id < currentStep || step.completed;
+                
+                return (
+                  <button
+                    key={step.id}
+                    onClick={() => setCurrentStep(step.id)}
+                    className={`relative z-10 flex flex-col items-center group ${
+                      step.id <= currentStep ? 'cursor-pointer' : 'cursor-not-allowed'
+                    }`}
+                    disabled={step.id > currentStep && !steps[step.id - 2]?.completed}
+                  >
+                    <div className={`
+                      w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300
+                      ${isActive ? 'bg-primary text-primary-foreground scale-110 shadow-lg' : 
+                        isCompleted ? 'bg-primary text-primary-foreground' : 
+                        'bg-card border-2 border-border text-muted-foreground'}
+                    `}>
+                      {isCompleted && !isActive ? (
+                        <CheckCircle2 className="h-5 w-5" />
+                      ) : (
+                        <Icon className="h-5 w-5" />
+                      )}
+                    </div>
+                    <span className={`
+                      mt-2 text-xs font-medium transition-colors whitespace-nowrap
+                      ${isActive ? 'text-foreground' : 
+                        isCompleted ? 'text-foreground' : 'text-muted-foreground'}
+                    `}>
+                      {step.name}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Step Content */}
-        <div className="animate-in slide-in-from-bottom-4 duration-500">
+        <div className={currentStep === 0 ? "" : "animate-in slide-in-from-bottom-4 duration-500"}>
           {renderStepContent()}
         </div>
 

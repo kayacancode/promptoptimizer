@@ -2,13 +2,48 @@ import { NextRequest, NextResponse } from 'next/server'
 import { ConfigFile, OptimizationResult, EvaluationResult, TestCase, BenchmarkConfig } from '@/types'
 import { BenchmarkEvaluationService } from '@/lib/benchmarks/benchmark-evaluation-service'
 import { TestCaseGenerator } from '@/lib/test-case-generator'
-import { authenticateRequest } from '@/lib/auth-middleware'
+import { createClient } from '@supabase/supabase-js'
 import { SupabaseAccessKeyManager } from '@/lib/supabase-access-keys'
 import Anthropic from '@anthropic-ai/sdk'
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || '',
 })
+
+// Server-side authentication helper
+async function authenticateRequest(request: NextRequest) {
+  try {
+    // Get the authorization header
+    const authHeader = request.headers.get('authorization')
+    
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return { authorized: false, error: 'Authorization header missing or invalid' }
+    }
+
+    const token = authHeader.substring(7)
+    
+    // Create server-side Supabase client
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
+
+    // Verify the token
+    const { data: { user }, error } = await supabase.auth.getUser(token)
+    
+    if (error || !user) {
+      return { authorized: false, error: 'Invalid authentication token' }
+    }
+
+    return {
+      authorized: true,
+      userId: user.id
+    }
+  } catch (error) {
+    console.error('Authentication error:', error)
+    return { authorized: false, error: 'Authentication failed' }
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
