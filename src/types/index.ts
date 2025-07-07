@@ -285,7 +285,7 @@ export interface TestResult {
 
 // Benchmark Types
 export interface BenchmarkConfig {
-  name: 'MMLU' | 'HellaSwag' | 'TruthfulQA'
+  name: 'MMLU' | 'HellaSwag' | 'TruthfulQA' | 'HumanEval' | 'MBPP' | 'WritingBench' | 'ConvBench' | 'SafetyBench'
   enabled: boolean
   sampleSize: number
   fullDataset?: boolean
@@ -311,7 +311,7 @@ export interface BenchmarkResponse {
 }
 
 export interface BenchmarkResult {
-  benchmark: 'MMLU' | 'HellaSwag' | 'TruthfulQA'
+  benchmark: 'MMLU' | 'HellaSwag' | 'TruthfulQA' | 'HumanEval' | 'MBPP' | 'WritingBench' | 'ConvBench' | 'SafetyBench'
   totalQuestions: number
   correctAnswers: number
   accuracy: number

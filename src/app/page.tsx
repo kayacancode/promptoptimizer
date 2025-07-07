@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -47,8 +47,24 @@ export default function Home() {
   const [optimizationResult, setOptimizationResult] = useState<OptimizationResult | null>(null);
   const [includeContext, setIncludeContext] = useState(true);
   const [showDiff, setShowDiff] = useState(false);
-  
+  const [isUserSignedIn, setIsUserSignedIn] = useState(false);
 
+  // Check auth status on mount
+  useEffect(() => {
+    const checkAuthStatus = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      setIsUserSignedIn(!!session?.user)
+    }
+    
+    checkAuthStatus()
+    
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setIsUserSignedIn(!!session?.user)
+    })
+    
+    return () => subscription.unsubscribe()
+  }, [])
 
   // Enhanced diff renderer function
   const renderDiff = (original: string, optimized: string) => {
@@ -278,18 +294,18 @@ export default function Home() {
                     </div>
                     
                     <h1 className="text-5xl lg:text-7xl font-bold leading-tight">
-                      <span className="text-white">Optimize, </span>
-                      <span className="bg-gradient-to-r from-red-500 to-pink-500 bg-clip-text text-transparent">test,</span>
+                      <span className="text-white">Your AI </span>
+                      <span className="bg-gradient-to-r from-red-500 to-pink-500 bg-clip-text text-transparent">broke.</span>
                       <br />
-                      <span className="text-white">and </span>
-                      <span className="bg-gradient-to-r from-purple-500 to-blue-500 bg-clip-text text-transparent">deploy</span>
+                      <span className="text-white">Ours </span>
+                      <span className="bg-gradient-to-r from-purple-500 to-blue-500 bg-clip-text text-transparent">fixes</span>
                       <br />
-                      <span className="text-gray-400 text-4xl lg:text-5xl">automatically</span>
+                      <span className="text-gray-400 text-4xl lg:text-5xl">itself.</span>
                     </h1>
                     
                     <p className="text-xl text-gray-300 max-w-lg leading-relaxed">
-                      Complete automated workflow: optimize prompts, run benchmark tests, and create PRs to integrate improvements directly into your codebase.
-                      <span className="text-red-400 font-semibold"> Reduce costs by 50%</span> with zero manual work.
+                      Autonomous system that closes the loop between AI feedback and implementation—fixing prompts, updating code, and testing changes automatically.
+                      <span className="text-purple-400 font-semibold"> Think DevOps for AI.</span>
                     </p>
                   </div>
 
@@ -308,6 +324,7 @@ export default function Home() {
                       Start Optimizing
                       <ArrowRight className="ml-2 h-5 w-5" />
                     </Button>
+                    <a href="https://www.loom.com/share/79aec74f1df2404ba5876e0ade2749f1?sid=3030c0df-d410-4f1b-a90f-7c7b27e151e1">
                     <Button 
                       variant="outline" 
                       size="lg"
@@ -316,21 +333,22 @@ export default function Home() {
                       View Demo
                       <Play className="ml-2 h-5 w-5" />
                     </Button>
+                    </a>
                   </div>
 
                   {/* Stats */}
                   <div className="flex items-center space-x-8 pt-8">
                     <div className="text-center">
-                      <div className="text-3xl font-bold text-white">50%</div>
-                      <div className="text-sm text-gray-400">Cost Reduction</div>
+                      <div className="text-3xl font-bold text-white">24/7</div>
+                      <div className="text-sm text-gray-400">Self-Healing</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-3xl font-bold text-white">10k+</div>
-                      <div className="text-sm text-gray-400">Prompts Optimized</div>
+                      <div className="text-3xl font-bold text-white">Zero</div>
+                      <div className="text-sm text-gray-400">Human Input</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-3xl font-bold text-white">99%</div>
-                      <div className="text-sm text-gray-400">Accuracy</div>
+                      <div className="text-3xl font-bold text-white">∞</div>
+                      <div className="text-sm text-gray-400">Iteration Loops</div>
                     </div>
                   </div>
                 </div>
@@ -356,44 +374,44 @@ export default function Home() {
                     <div className="p-6 space-y-4">
                       {/* Header */}
                       <div className="flex items-center justify-between">
-                        <h3 className="text-white font-semibold">Prompt Optimization</h3>
+                        <h3 className="text-white font-semibold">AI System Status</h3>
                         <div className="flex items-center space-x-2">
                           <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                          <span className="text-green-400 text-sm">Live</span>
+                          <span className="text-green-400 text-sm">Self-Healing</span>
                         </div>
                       </div>
 
-                      {/* Input section */}
+                      {/* Problem Detection */}
                       <div className="bg-slate-700 rounded-lg p-4 space-y-3">
-                        <div className="text-gray-300 text-sm font-medium">Original Prompt</div>
-                        <div className="bg-slate-800 rounded p-3 text-gray-400 text-sm font-mono">
-                          Analyze this code and suggest improvements
+                        <div className="text-red-300 text-sm font-medium">⚠️ Issue Detected</div>
+                        <div className="bg-slate-800 rounded p-3 text-red-400 text-sm font-mono">
+                          Prompt accuracy dropped 15% → Auto-fixing...
                         </div>
                       </div>
 
-                      {/* Output section */}
-                      <div className="bg-gradient-to-r from-purple-900/20 to-pink-900/20 rounded-lg p-4 space-y-3 border border-purple-500/20">
+                      {/* Auto-Fix section */}
+                      <div className="bg-gradient-to-r from-purple-900/20 to-green-900/20 rounded-lg p-4 space-y-3 border border-green-500/20">
                         <div className="flex items-center justify-between">
-                          <div className="text-purple-300 text-sm font-medium">Auto-Optimized & Tested</div>
-                          <div className="bg-green-500 text-white text-xs px-2 py-1 rounded-full">Ready for PR</div>
+                          <div className="text-green-300 text-sm font-medium">✅ Auto-Fixed & Deployed</div>
+                          <div className="bg-green-500 text-white text-xs px-2 py-1 rounded-full">Live in Prod</div>
                         </div>
                         <div className="bg-slate-800 rounded p-3 text-green-400 text-sm font-mono">
-                          Perform a comprehensive code analysis focusing on: performance bottlenecks, security vulnerabilities, and maintainability issues. Provide specific, actionable recommendations with examples.
+                          Improved prompt + updated tests → Performance restored to 98.5%
                         </div>
                       </div>
 
                       {/* Stats */}
                       <div className="grid grid-cols-3 gap-3 pt-2">
                         <div className="bg-slate-700 rounded-lg p-3 text-center">
-                          <div className="text-green-400 font-bold">✓</div>
-                          <div className="text-gray-400 text-xs">Tested</div>
+                          <div className="text-green-400 font-bold">🔄</div>
+                          <div className="text-gray-400 text-xs">Auto-Fix</div>
                         </div>
                         <div className="bg-slate-700 rounded-lg p-3 text-center">
-                          <div className="text-blue-400 font-bold">PR</div>
-                          <div className="text-gray-400 text-xs">Ready</div>
+                          <div className="text-blue-400 font-bold">🧪</div>
+                          <div className="text-gray-400 text-xs">Test Loop</div>
                         </div>
                         <div className="bg-slate-700 rounded-lg p-3 text-center">
-                          <div className="text-purple-400 font-bold">Auto</div>
+                          <div className="text-purple-400 font-bold">🚀</div>
                           <div className="text-gray-400 text-xs">Deploy</div>
                         </div>
                       </div>
@@ -406,40 +424,40 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* The Complete Loop Section */}
+              {/* The Autonomous Loop Section */}
               <div className="mt-16 max-w-2xl mx-auto">
                 <div className="bg-slate-800/60 backdrop-blur-xl rounded-2xl p-8 border border-purple-500/20 shadow-2xl">
                   <h3 className="text-2xl font-semibold text-white mb-6 text-center flex items-center justify-center">
                     <RefreshCw className="h-6 w-6 text-purple-400 mr-3" />
-                    The Complete Loop
+                    The Autonomous Loop
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-gray-300">
                     <div className="flex items-start space-x-3">
                       <div className="w-8 h-8 rounded-full bg-red-500 flex items-center justify-center text-white text-sm font-bold">1</div>
                       <div>
-                        <h4 className="font-semibold text-white">Optimize</h4>
-                        <span className="text-sm">AI-powered prompt enhancement with vector intelligence</span>
+                        <h4 className="font-semibold text-white">Detect</h4>
+                        <span className="text-sm">Monitor AI performance & catch degradation automatically</span>
                       </div>
                     </div>
                     <div className="flex items-start space-x-3">
                       <div className="w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center text-white text-sm font-bold">2</div>
                       <div>
-                        <h4 className="font-semibold text-white">Test</h4>
-                        <span className="text-sm">Benchmark testing & performance metrics validation</span>
+                        <h4 className="font-semibold text-white">Fix</h4>
+                        <span className="text-sm">Auto-repair prompts, configs & code without human input</span>
                       </div>
                     </div>
                     <div className="flex items-start space-x-3">
                       <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white text-sm font-bold">3</div>
                       <div>
                         <h4 className="font-semibold text-white">Deploy</h4>
-                        <span className="text-sm">Automatic PR creation to integrate into codebase</span>
+                        <span className="text-sm">Ship fixes directly to production with automated testing</span>
                       </div>
                     </div>
                     <div className="flex items-start space-x-3">
                       <div className="w-8 h-8 rounded-full bg-purple-500 flex items-center justify-center text-white text-sm font-bold">4</div>
                       <div>
                         <h4 className="font-semibold text-white">Learn</h4>
-                        <span className="text-sm">Results feed back to improve future optimizations</span>
+                        <span className="text-sm">Evolve & improve from every failure → better every iteration</span>
                       </div>
                     </div>
                   </div>
@@ -451,15 +469,27 @@ export default function Home() {
                 <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-8 shadow-2xl [&_.text-muted-foreground]:text-gray-200 [&_.text-sm]:text-gray-200 [&_.text-xs]:text-gray-300 [&_h2]:text-white [&_h3]:text-white [&_label]:text-white [&_p]:text-gray-200 [&_input]:bg-white/20 [&_input]:border-white/30 [&_input]:text-white [&_input::placeholder]:text-gray-300 [&_button]:bg-white/20 [&_button]:hover:bg-white/30 [&_button]:border-white/30">
                   <UserAuthComponent />
                 </div>
-                <div className="text-center mt-8">
-                  <Button 
-                    onClick={() => setCurrentStep(1)}
-                    className="bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white border-0 px-8 py-4 text-lg font-semibold rounded-xl"
-                  >
-                    Continue to Prompt Optimization
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </div>
+                {isUserSignedIn ? (
+                  <div className="text-center mt-8">
+                    <Button 
+                      onClick={() => setCurrentStep(1)}
+                      className="bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white border-0 px-8 py-4 text-lg font-semibold rounded-xl"
+                    >
+                      Continue to Prompt Optimization
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="text-center mt-8">
+                    <p className="text-gray-300 text-sm mb-4">
+                      ↑ Please sign in above to start optimizing your prompts
+                    </p>
+                    <div className="flex items-center justify-center space-x-2 text-gray-400 text-xs">
+                      <Zap className="h-4 w-4" />
+                      <span>10 free optimizations per day in Beta</span>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -533,6 +563,7 @@ export default function Home() {
               configs={benchmarkConfigs}
               onChange={setBenchmarkConfigs}
               isRunning={false}
+              promptContext={selectedFile?.content || optimizationResult?.originalContent}
             />
           </div>
         );

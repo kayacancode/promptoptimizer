@@ -81,7 +81,7 @@ export async function GET(request: NextRequest) {
 
     const runner = new BenchmarkRunner()
     const configs: BenchmarkConfig[] = benchmarks.map(name => ({
-      name: name as 'MMLU' | 'HellaSwag' | 'TruthfulQA',
+      name: name as 'MMLU' | 'HellaSwag' | 'TruthfulQA' | 'HumanEval' | 'MBPP' | 'WritingBench' | 'ConvBench' | 'SafetyBench',
       enabled: true,
       sampleSize,
       fullDataset: false

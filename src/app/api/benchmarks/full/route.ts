@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
     
     // Create configs for full dataset evaluation
     const configs: BenchmarkConfig[] = benchmarks.map((name: string) => ({
-      name: name as 'MMLU' | 'HellaSwag' | 'TruthfulQA',
+      name: name as 'MMLU' | 'HellaSwag' | 'TruthfulQA' | 'HumanEval' | 'MBPP' | 'WritingBench' | 'ConvBench' | 'SafetyBench',
       enabled: true,
       sampleSize: 0, // Not used for full dataset
       fullDataset: true
