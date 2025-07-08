@@ -294,11 +294,11 @@ export default function Home() {
                     </div>
                     
                     <h1 className="text-5xl lg:text-7xl font-bold leading-tight">
-                      <span className="text-white">Cursor, but for </span>
-                      <span className="bg-gradient-to-r from-red-500 to-pink-500 bg-clip-text text-transparent">prompts</span>
+                      <span className="text-white">Autonomous </span>
+                      <span className="bg-gradient-to-r from-red-500 to-pink-500 bg-clip-text text-transparent">LLM</span>
                       <br />
-                      <span className="text-white">and </span>
-                      <span className="bg-gradient-to-r from-purple-500 to-blue-500 bg-clip-text text-transparent">system rules</span>
+                      <span className="bg-gradient-to-r from-purple-500 to-blue-500 bg-clip-text text-transparent">optimization</span>
+                      <br />
                     </h1>
                     
                     <p className="text-xl text-gray-300 max-w-lg leading-relaxed">
