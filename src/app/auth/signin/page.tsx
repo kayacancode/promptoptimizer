@@ -8,7 +8,7 @@ export default function SignInPage() {
       <div className="max-w-md mx-auto">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Welcome to PromptLoop
+            Welcome to bestmate
           </h1>
           <p className="text-gray-600">
             Sign in to get started with AI-powered prompt optimization

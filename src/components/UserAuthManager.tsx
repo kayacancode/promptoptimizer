@@ -242,8 +242,8 @@ export function UserAuthComponent() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
-                <span className="flex items-center">
-                  <User className="h-5 w-5 mr-2" />
+                <span className="flex items-center text-white">
+                  <User className="h-5 w-5 mr-2 text-white" />
                   Welcome, {currentUser?.email}
                 </span>
                 <Button variant="outline" size="sm" onClick={signOut}>
@@ -258,7 +258,7 @@ export function UserAuthComponent() {
           {userTokens && (
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center justify-between">
+                <CardTitle className="flex items-center justify-between text-white">
                   <span className="flex items-center">
                     <Zap className="h-5 w-5 mr-2" />
                     Your Tokens
@@ -322,7 +322,7 @@ export function UserAuthComponent() {
                 <Alert>
                   <Zap className="h-4 w-4" />
                   <AlertDescription>
-                    <strong>Beta Version:</strong> You get 10 free tokens per day. Tokens reset daily at midnight.
+                    <strong className='text-black'>Beta Version:</strong> You get 10 free tokens per day. Tokens reset daily at midnight.
                   </AlertDescription>
                 </Alert>
               </CardContent>

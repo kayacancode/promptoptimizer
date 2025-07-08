@@ -294,18 +294,16 @@ export default function Home() {
                     </div>
                     
                     <h1 className="text-5xl lg:text-7xl font-bold leading-tight">
-                      <span className="text-white">AI that </span>
-                      <span className="bg-gradient-to-r from-red-500 to-pink-500 bg-clip-text text-transparent">tests,</span>
+                      <span className="text-white">Cursor, but for </span>
+                      <span className="bg-gradient-to-r from-red-500 to-pink-500 bg-clip-text text-transparent">prompts</span>
                       <br />
-                      <span className="bg-gradient-to-r from-purple-500 to-blue-500 bg-clip-text text-transparent">fixes,</span>
-                      <span className="text-white"> and </span>
-                      <br />
-                      <span className="text-gray-400 text-4xl lg:text-5xl">improves itself</span>
+                      <span className="text-white">and </span>
+                      <span className="bg-gradient-to-r from-purple-500 to-blue-500 bg-clip-text text-transparent">system rules</span>
                     </h1>
                     
                     <p className="text-xl text-gray-300 max-w-lg leading-relaxed">
-                      Autonomous system that runs benchmark tests, detects AI degradation, and auto-fixes prompts + code. Continuous evaluation loops ensure your AI stays optimized.
-                      <span className="text-purple-400 font-semibold"> Zero manual work.</span>
+                      Autonomous dev tool that detects prompt issues in your LLM apps, suggests fixes, applies them to your code/config, and runs tests.
+                      <span className="text-purple-400 font-semibold"> With an autonomous feedback loop.</span>
                     </p>
                   </div>
 
@@ -339,16 +337,16 @@ export default function Home() {
                   {/* Stats */}
                   <div className="flex items-center space-x-8 pt-8">
                     <div className="text-center">
-                      <div className="text-3xl font-bold text-white">8+</div>
-                      <div className="text-sm text-gray-400">Benchmark Tests</div>
+                      <div className="text-3xl font-bold text-white">Code</div>
+                      <div className="text-sm text-gray-400">Auto-Fixed</div>
                     </div>
                     <div className="text-center">
                       <div className="text-3xl font-bold text-white">24/7</div>
-                      <div className="text-sm text-gray-400">Auto-Eval</div>
+                      <div className="text-sm text-gray-400">Log Analysis</div>
                     </div>
                     <div className="text-center">
                       <div className="text-3xl font-bold text-white">Zero</div>
-                      <div className="text-sm text-gray-400">Manual Work</div>
+                      <div className="text-sm text-gray-400">Manual Fixes</div>
                     </div>
                   </div>
                 </div>
@@ -374,45 +372,45 @@ export default function Home() {
                     <div className="p-6 space-y-4">
                       {/* Header */}
                       <div className="flex items-center justify-between">
-                        <h3 className="text-white font-semibold">AI System Status</h3>
+                        <h3 className="text-white font-semibold">config.js • prompts.yaml</h3>
                         <div className="flex items-center space-x-2">
-                          <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                          <span className="text-green-400 text-sm">Self-Healing</span>
+                          <div className="w-2 h-2 bg-orange-400 rounded-full animate-pulse"></div>
+                          <span className="text-orange-400 text-sm">Analyzing Logs</span>
                         </div>
                       </div>
 
-                      {/* Benchmark Detection */}
+                      {/* Log Analysis */}
                       <div className="bg-slate-700 rounded-lg p-4 space-y-3">
-                        <div className="text-yellow-300 text-sm font-medium">🧪 Running MMLU + HumanEval Tests</div>
+                        <div className="text-yellow-300 text-sm font-medium">📊 Hallucination Detected in Logs</div>
                         <div className="bg-slate-800 rounded p-3 text-yellow-400 text-sm font-mono">
-                          Benchmark scores: 87% → 72% (-15%) → Issue detected
+                          3 invalid JSON outputs found → System prompt needs fixing
                         </div>
                       </div>
 
                       {/* Auto-Fix section */}
                       <div className="bg-gradient-to-r from-purple-900/20 to-green-900/20 rounded-lg p-4 space-y-3 border border-green-500/20">
                         <div className="flex items-center justify-between">
-                          <div className="text-green-300 text-sm font-medium">✅ Auto-Fixed & Re-Evaluated</div>
-                          <div className="bg-green-500 text-white text-xs px-2 py-1 rounded-full">Deployed</div>
+                          <div className="text-green-300 text-sm font-medium">✅ Files Auto-Updated</div>
+                          <div className="bg-green-500 text-white text-xs px-2 py-1 rounded-full">Applied</div>
                         </div>
                         <div className="bg-slate-800 rounded p-3 text-green-400 text-sm font-mono">
-                          New prompt → Re-tested on 8 benchmarks → 94% score (+22%)
+                          Modified config.js + prompts.yaml → Test passed → JSON fixed
                         </div>
                       </div>
 
                       {/* Stats */}
                       <div className="grid grid-cols-3 gap-3 pt-2">
                         <div className="bg-slate-700 rounded-lg p-3 text-center">
-                          <div className="text-green-400 font-bold">8</div>
-                          <div className="text-gray-400 text-xs">Benchmarks</div>
+                          <div className="text-green-400 font-bold">📝</div>
+                          <div className="text-gray-400 text-xs">Log Analysis</div>
                         </div>
                         <div className="bg-slate-700 rounded-lg p-3 text-center">
-                          <div className="text-blue-400 font-bold">94%</div>
-                          <div className="text-gray-400 text-xs">Score</div>
+                          <div className="text-blue-400 font-bold">⚡</div>
+                          <div className="text-gray-400 text-xs">Auto-Fix</div>
                         </div>
                         <div className="bg-slate-700 rounded-lg p-3 text-center">
-                          <div className="text-purple-400 font-bold">+22%</div>
-                          <div className="text-gray-400 text-xs">Improved</div>
+                          <div className="text-purple-400 font-bold">✅</div>
+                          <div className="text-gray-400 text-xs">Tested</div>
                         </div>
                       </div>
                     </div>
@@ -425,39 +423,46 @@ export default function Home() {
               </div>
 
               {/* The Autonomous Loop Section */}
-              <div className="mt-16 max-w-2xl mx-auto">
+              <div className="mt-16 max-w-3xl mx-auto">
                 <div className="bg-slate-800/60 backdrop-blur-xl rounded-2xl p-8 border border-purple-500/20 shadow-2xl">
                   <h3 className="text-2xl font-semibold text-white mb-6 text-center flex items-center justify-center">
                     <RefreshCw className="h-6 w-6 text-purple-400 mr-3" />
-                    The Autonomous Loop
+                    Autonomous Dev Tool for LLM Apps
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-gray-300">
-                    <div className="flex items-start space-x-3">
-                      <div className="w-8 h-8 rounded-full bg-red-500 flex items-center justify-center text-white text-sm font-bold">1</div>
+                                        <div className="flex items-start space-x-4">
+                      <div className="w-12 h-12 rounded-full bg-red-500 flex items-center justify-center text-white text-lg font-bold flex-shrink-0">1</div>
                       <div>
-                        <h4 className="font-semibold text-white">Benchmark & Detect</h4>
-                        <span className="text-sm">Run 8+ evaluation tests (MMLU, HumanEval, Safety) continuously</span>
+                        <h4 className="font-semibold text-white">Monitor Performance</h4>
+                        <span className="text-sm">Track hallucination, output structure, accuracy in your LLM logs</span>
                       </div>
                     </div>
-                    <div className="flex items-start space-x-3">
-                      <div className="w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center text-white text-sm font-bold">2</div>
+                    <div className="flex items-start space-x-4">
+                      <div className="w-12 h-12 rounded-full bg-orange-500 flex items-center justify-center text-white text-lg font-bold flex-shrink-0">2</div>
                       <div>
-                        <h4 className="font-semibold text-white">Auto-Fix</h4>
-                        <span className="text-sm">Repair prompts, configs & code when scores drop</span>
+                        <h4 className="font-semibold text-white">Suggest Fixes</h4>
+                        <span className="text-sm">Prompt rewrites, JSON structuring, system rule tuning</span>
                       </div>
                     </div>
-                    <div className="flex items-start space-x-3">
-                      <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white text-sm font-bold">3</div>
+                    <div className="flex items-start space-x-4">
+                      <div className="w-12 h-12 rounded-full bg-green-500 flex items-center justify-center text-white text-lg font-bold flex-shrink-0">3</div>
                       <div>
-                        <h4 className="font-semibold text-white">Re-Evaluate & Deploy</h4>
-                        <span className="text-sm">Test fixes on full benchmark suite before shipping</span>
+                        <h4 className="font-semibold text-white">Apply to Code</h4>
+                        <span className="text-sm">Directly modify your config files (YAML, JS, JSON, Python)</span>
                       </div>
                     </div>
-                    <div className="flex items-start space-x-3">
-                      <div className="w-8 h-8 rounded-full bg-purple-500 flex items-center justify-center text-white text-sm font-bold">4</div>
+                    <div className="flex items-start space-x-4">
+                      <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center text-white text-lg font-bold flex-shrink-0">4</div>
                       <div>
-                        <h4 className="font-semibold text-white">Learn & Improve</h4>
-                        <span className="text-sm">Each evaluation cycle makes your AI smarter & more reliable</span>
+                        <h4 className="font-semibold text-white">Test Changes</h4>
+                        <span className="text-sm">Run sample prompts and evals to validate improvements</span>
+                      </div>
+                    </div>
+                    <div className="flex items-start space-x-4 md:col-span-2 justify-center">
+                      <div className="w-12 h-12 rounded-full bg-purple-500 flex items-center justify-center text-white text-lg font-bold flex-shrink-0">5</div>
+                      <div>
+                        <h4 className="font-semibold text-white">Iterate Automatically</h4>
+                        <span className="text-sm">Keep improving until your LLM outputs are optimized</span>
                       </div>
                     </div>
                   </div>
