@@ -200,16 +200,30 @@ export default function Home() {
         const original = optimizeResult.data.originalContent;
         const optimized = optimizeResult.data.optimizedContent;
         
+        // Calculate confidence based on actual changes
+        const calculateConfidence = (orig: string, opt: string) => {
+          const lengthDiff = Math.abs(opt.length - orig.length);
+          const lengthRatio = lengthDiff / Math.max(orig.length, opt.length);
+          
+          // Higher confidence for moderate changes (not too small, not too drastic)
+          if (lengthRatio < 0.1) return 60; // Very small changes
+          if (lengthRatio < 0.3) return 85; // Moderate changes
+          if (lengthRatio < 0.5) return 75; // Significant changes
+          return 65; // Drastic changes
+        };
+
         // Simple change detection
         const changes = [];
         if (original !== optimized) {
+          const confidence = calculateConfidence(original, optimized);
+          
           changes.push({
             type: 'clarity' as const,
             impact: 'medium' as const,
             description: 'Prompt content has been modified',
             reasoning: 'The optimization process has updated the prompt content to improve performance.',
             expectedOutcome: 'Improved prompt effectiveness and clarity',
-            confidence: 85,
+            confidence,
             section: {
               start: 1,
               end: 1,
