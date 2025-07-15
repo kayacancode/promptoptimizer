@@ -135,7 +135,7 @@ export interface TestCase {
   metadata?: {
     domain?: string
     useCase?: string
-    source?: 'generated' | 'lmsys' | 'user_provided'
+    source?: 'generated' | 'lmsys' | 'user_provided' | 'standard'
     conversationId?: string
     originalRating?: number
     [key: string]: any

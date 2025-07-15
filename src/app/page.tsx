@@ -9,7 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { 
   ArrowRight, 
-  Upload, 
+ 
   Play, 
   BarChart3, 
   Settings,
@@ -22,18 +22,20 @@ import {
   List,
   RefreshCw
 } from 'lucide-react';
-import { TestCaseUploader } from '@/components/TestCaseUploader';
 import { BenchmarkSelector } from '@/components/BenchmarkSelector';
 import { EvalResults } from '@/components/EvalResults';
 import { PromptInput } from '@/components/PromptInput';
 import { SafetyEvaluation } from '@/components/SafetyEvaluation';
 import { UserAuthComponent } from '@/components/UserAuthManager';
-import { TestCase, BenchmarkConfig, EvaluationResult, ConfigFile, OptimizationResult } from '@/types';
+import { TokenBalance } from '@/components/TokenBalance';
+import { PromptClarification, ClarificationData } from '@/components/PromptClarification';
+import { EvaluationDashboard, EvaluationData } from '@/components/EvaluationDashboard';
+import { SemanticDiff, SemanticDiffData } from '@/components/SemanticDiff';
+import { BenchmarkConfig, EvaluationResult, ConfigFile, OptimizationResult } from '@/types';
 import { supabase } from '@/lib/supabase';
 
 export default function Home() {
   const [currentStep, setCurrentStep] = useState(0);
-  const [userTestCases, setUserTestCases] = useState<TestCase[]>([]);
   const [benchmarkConfigs, setBenchmarkConfigs] = useState<BenchmarkConfig[]>([
     { name: 'MMLU', enabled: false, sampleSize: 20, fullDataset: false },
     { name: 'HellaSwag', enabled: false, sampleSize: 20, fullDataset: false },
@@ -48,6 +50,9 @@ export default function Home() {
   const [includeContext, setIncludeContext] = useState(true);
   const [showDiff, setShowDiff] = useState(false);
   const [isUserSignedIn, setIsUserSignedIn] = useState(false);
+  const [clarificationData, setClarificationData] = useState<ClarificationData | null>(null);
+  const [evaluationData, setEvaluationData] = useState<EvaluationData | null>(null);
+  const [semanticDiffData, setSemanticDiffData] = useState<SemanticDiffData | null>(null);
 
   // Check auth status on mount
   useEffect(() => {
@@ -59,7 +64,7 @@ export default function Home() {
     checkAuthStatus()
     
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setIsUserSignedIn(!!session?.user)
     })
     
@@ -129,10 +134,10 @@ export default function Home() {
 
   const steps = [
     { id: 1, name: 'Input Prompt', icon: FileText, completed: gitHubConnected },
-    { id: 2, name: 'Upload Test Cases', icon: Upload, completed: userTestCases.length > 0 },
+    { id: 2, name: 'Clarify Requirements', icon: Info, completed: clarificationData !== null },
     { id: 3, name: 'Configure Settings', icon: Settings, completed: benchmarkConfigs.some(c => c.enabled) || includeContext },
     { id: 4, name: 'Optimize Prompt', icon: Zap, completed: optimizationResult !== null },
-    { id: 5, name: 'Run Evaluation', icon: Play, completed: evaluationResult !== null },
+    { id: 5, name: 'Run Evaluation', icon: Play, completed: evaluationData !== null },
     { id: 6, name: 'View Results', icon: BarChart3, completed: false }
   ];
 
@@ -154,7 +159,7 @@ export default function Home() {
         throw new Error('Please sign in to continue');
       }
 
-      // Only optimize the prompt (fast step) with global prompt insights
+      // Only optimize the prompt (fast step) with global prompt insights and clarification data
       const optimizeResponse = await fetch('/api/optimize', {
         method: 'POST',
         headers: { 
@@ -165,6 +170,7 @@ export default function Home() {
           configFile: configToOptimize,
           includeContext,
           userId: session.user.id,
+          clarificationData,
           useGlobalPrompts: true, // Enable global prompt pool
           enableAPE: true,
           enableSafetyEvaluation: true,
@@ -188,6 +194,54 @@ export default function Home() {
 
       setOriginalConfig(configToOptimize);
       setOptimizationResult(optimizeResult.data);
+      
+      // Create basic semantic diff data from optimization result
+      if (optimizeResult.data.originalContent && optimizeResult.data.optimizedContent) {
+        const original = optimizeResult.data.originalContent;
+        const optimized = optimizeResult.data.optimizedContent;
+        
+        // Simple change detection
+        const changes = [];
+        if (original !== optimized) {
+          changes.push({
+            type: 'clarity' as const,
+            impact: 'medium' as const,
+            description: 'Prompt content has been modified',
+            reasoning: 'The optimization process has updated the prompt content to improve performance.',
+            expectedOutcome: 'Improved prompt effectiveness and clarity',
+            confidence: 85,
+            section: {
+              start: 1,
+              end: 1,
+              context: 'Main prompt content'
+            },
+            examples: [{
+              before: original.substring(0, 100) + (original.length > 100 ? '...' : ''),
+              after: optimized.substring(0, 100) + (optimized.length > 100 ? '...' : ''),
+              explanation: 'Prompt has been optimized for better performance'
+            }]
+          });
+        }
+        
+        const basicSemanticDiff: SemanticDiffData = {
+          originalText: original,
+          optimizedText: optimized,
+          changes,
+          overallImpact: {
+            structureImprovements: changes.length > 0 ? 1 : 0,
+            clarityImprovements: changes.length > 0 ? 1 : 0,
+            specificityImprovements: changes.length > 0 ? 1 : 0,
+            potentialRisks: []
+          },
+          summary: {
+            keyChanges: changes.length > 0 ? ['Content modified for optimization'] : [],
+            expectedBehaviorChanges: changes.length > 0 ? ['Improved performance and clarity'] : [],
+            recommendations: changes.length > 0 ? ['Test the optimized prompt in your application'] : []
+          }
+        };
+        setSemanticDiffData(basicSemanticDiff);
+      }
+      
       setCurrentStep(4.5); // New intermediate step to show optimized prompt
     } catch (error) {
       console.error('Optimization error:', error);
@@ -208,7 +262,7 @@ export default function Home() {
         throw new Error('Please sign in to continue');
       }
 
-      // Run evaluation on the optimized prompt
+      // Run comprehensive evaluation on the optimized prompt
       const response = await fetch('/api/evaluate', {
         method: 'POST',
         headers: { 
@@ -218,10 +272,14 @@ export default function Home() {
         body: JSON.stringify({
           originalConfig: originalConfig,
           optimizationResult: optimizationResult,
-          userTestCases: userTestCases.length > 0 ? userTestCases : undefined,
+          userTestCases: undefined,
           includeBenchmarks: benchmarkConfigs.some(c => c.enabled),
           benchmarkConfigs: benchmarkConfigs.filter(c => c.enabled),
-          skipTestCaseGeneration: userTestCases.length === 0
+          skipTestCaseGeneration: false,
+          clarificationData,
+          enableComprehensiveEvaluation: true, // Enable new evaluation system
+          enableObjectiveMetrics: true,
+          enablePairwiseComparison: true
         })
       });
       
@@ -511,11 +569,13 @@ export default function Home() {
         );
       case 2:
         return (
-          <TestCaseUploader
-            testCases={userTestCases}
-            onTestCasesChange={setUserTestCases}
-            onRunTests={() => setCurrentStep(4)}
-            isRunning={false}
+          <PromptClarification
+            onClarificationComplete={(data: ClarificationData) => {
+              setClarificationData(data);
+              setCurrentStep(3);
+            }}
+            onSkip={() => setCurrentStep(3)}
+            initialPrompt={selectedFile?.content}
           />
         );
       case 3:
@@ -599,12 +659,6 @@ export default function Home() {
                     <Code2 className="h-4 w-4 text-primary" />
                   </div>
                 )}
-                {userTestCases.length > 0 && (
-                  <div className="flex items-center justify-between p-3 bg-secondary rounded-lg">
-                    <span className="text-sm font-medium">{userTestCases.length} Test Cases</span>
-                    <CheckCircle2 className="h-4 w-4 text-primary" />
-                  </div>
-                )}
                 {benchmarkConfigs.filter(c => c.enabled).length > 0 && (
                   <div className="flex items-center justify-between p-3 bg-secondary rounded-lg">
                     <span className="text-sm font-medium">
@@ -655,6 +709,22 @@ export default function Home() {
       case 4.5:
         return optimizationResult ? (
           <div className="space-y-6">
+            {/* Semantic Diff Display - only show if real data exists */}
+            {semanticDiffData && (
+              <SemanticDiff
+                data={semanticDiffData}
+                onCopyOptimized={async () => {
+                  if (optimizationResult.optimizedContent) {
+                    try {
+                      await navigator.clipboard.writeText(optimizationResult.optimizedContent);
+                    } catch (err) {
+                      console.error('Failed to copy to clipboard:', err);
+                    }
+                  }
+                }}
+              />
+            )}
+
             {/* Optimized Prompt Display */}
             <Card className="p-6 card-elevated">
               <div className="space-y-4">
@@ -664,9 +734,6 @@ export default function Home() {
                     Prompt Optimized Successfully!
                   </h3>
                   <div className="flex items-center space-x-2">
-                    <Badge className="bg-green-100 text-green-800">
-                      {Math.round((optimizationResult.confidence || 0) * 100)}% Improvement
-                    </Badge>
                     <Button 
                       variant="outline" 
                       size="sm"
@@ -800,7 +867,8 @@ export default function Home() {
                       variant="outline"
                       onClick={() => {
                         setOptimizationResult(null);
-                        setCurrentStep(4);
+                        setSemanticDiffData(null);
+                        setCurrentStep(3);
                       }}
                     >
                       Re-optimize
@@ -812,13 +880,13 @@ export default function Home() {
                     className="btn-primary"
                   >
                     {isRunning ? (
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-2 ">
                         <RefreshCw className="h-4 w-4 animate-spin" />
-                        <span>Running Evaluation... (takes 1-2 min)</span>
+                        <span className='text-white'>Running Evaluation... (takes 1-2 min)</span>
                       </div>
                     ) : (
                       <>
-                        Run Performance Evaluation
+                        <span className='text-white'>Run Performance Evaluation</span>
                         <Play className="ml-2 h-4 w-4" />
                       </>
                     )}
@@ -843,12 +911,6 @@ export default function Home() {
                 {selectedFile && (
                   <div className="flex items-center justify-between p-3 bg-secondary rounded-lg">
                     <span className="text-sm font-medium">Optimized Prompt Ready</span>
-                    <CheckCircle2 className="h-4 w-4 text-primary" />
-                  </div>
-                )}
-                {userTestCases.length > 0 && (
-                  <div className="flex items-center justify-between p-3 bg-secondary rounded-lg">
-                    <span className="text-sm font-medium">{userTestCases.length} Test Cases</span>
                     <CheckCircle2 className="h-4 w-4 text-primary" />
                   </div>
                 )}
@@ -893,6 +955,33 @@ export default function Home() {
       case 6:
         return evaluationResult ? (
           <div className="space-y-8">
+            {/* Comprehensive Evaluation Dashboard */}
+            {evaluationData && (
+              <EvaluationDashboard
+                data={evaluationData}
+                onViewDetails={(metric: string) => {
+                  console.log('View details for:', metric);
+                  // Handle metric detail view
+                }}
+              />
+            )}
+
+            {/* Semantic Diff Display */}
+            {semanticDiffData && (
+              <SemanticDiff
+                data={semanticDiffData}
+                onCopyOptimized={async () => {
+                  if (optimizationResult?.optimizedContent) {
+                    try {
+                      await navigator.clipboard.writeText(optimizationResult.optimizedContent);
+                    } catch (err) {
+                      console.error('Failed to copy to clipboard:', err);
+                    }
+                  }
+                }}
+              />
+            )}
+
             {/* Optimized Prompt Display */}
             {optimizationResult && (
               <Card className="p-6 card-elevated">
@@ -903,9 +992,6 @@ export default function Home() {
                       Optimized Prompt
                     </h3>
                     <div className="flex items-center space-x-2">
-                      <Badge className="bg-green-100 text-green-800">
-                        {Math.round((optimizationResult.confidence || 0) * 100)}% Improvement
-                      </Badge>
                       <Button 
                         variant="outline" 
                         size="sm"
@@ -1032,6 +1118,7 @@ export default function Home() {
                         variant="outline"
                         onClick={() => {
                           setEvaluationResult(null);
+                          setEvaluationData(null);
                           setCurrentStep(2);
                         }}
                       >
@@ -1137,7 +1224,7 @@ export default function Home() {
                 setBenchmarkConfigs(configs => 
                   configs.map(c => ({ ...c, enabled: true, fullDataset: true }))
                 );
-                setCurrentStep(3);
+                setCurrentStep(2);
               }}
             />
           </div>
@@ -1152,21 +1239,24 @@ export default function Home() {
         <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
           <div className="container mx-auto px-6 py-4">
             <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center p-1">
-                <Image 
-                  src="/logo.png" 
-                  alt="bestmate logo" 
-                  width={24}
-                  height={24}
-                  className="object-contain rounded"
-                />
-              </div>
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center p-1">
+                  <Image 
+                    src="/logo.png" 
+                    alt="bestmate logo" 
+                    width={24}
+                    height={24}
+                    className="object-contain rounded"
+                  />
+                </div>
                 <h1 className="text-xl font-semibold">bestmate</h1>
-            </div>
-              <Badge variant="secondary" className="text-xs">
-                Beta
-              </Badge>
+              </div>
+              <div className="flex items-center space-x-4">
+                {isUserSignedIn && <TokenBalance compact />}
+                <Badge variant="secondary" className="text-xs">
+                  Beta
+                </Badge>
+              </div>
             </div>
           </div>
         </header>
@@ -1186,7 +1276,7 @@ export default function Home() {
               />
               
               {/* Step Indicators */}
-              {steps.map((step, index) => {
+              {steps.map((step) => {
                 const Icon = step.icon;
                 const isActive = step.id === currentStep;
                 const isCompleted = step.id < currentStep || step.completed;
@@ -1245,28 +1335,12 @@ export default function Home() {
               disabled={!steps[currentStep - 1].completed}
               className="btn-primary text-white"
             >
-              {currentStep === 3 ? 'Start Evaluation' : 'Next'}
+              {currentStep === 3 ? 'Start Optimization' : 'Next'}
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </div>
         )}
 
-        {/* Quick Actions */}
-        {currentStep === 2 && userTestCases.length === 0 && (
-          <div className="mt-8 p-4 bg-secondary/50 rounded-lg text-center">
-            <p className="text-sm text-muted-foreground mb-3">
-              No test cases? No problem! Skip to configuration to use benchmarks only.
-            </p>
-            <Button
-              variant="outline"
-              onClick={() => setCurrentStep(3)}
-              size="sm"
-            >
-              Skip to Configuration
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-          </div>
-        )}
       </main>
     </div>
   );

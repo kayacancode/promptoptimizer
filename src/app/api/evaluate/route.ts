@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { ConfigFile, OptimizationResult, EvaluationResult, TestCase, BenchmarkConfig } from '@/types'
+import { ConfigFile, OptimizationResult, EvaluationResult, BenchmarkConfig } from '@/types'
 import { BenchmarkEvaluationService } from '@/lib/benchmarks/benchmark-evaluation-service'
-import { TestCaseGenerator } from '@/lib/test-case-generator'
 import { createClient } from '@supabase/supabase-js'
 import { SupabaseAccessKeyManager } from '@/lib/supabase-access-keys'
 import Anthropic from '@anthropic-ai/sdk'
@@ -61,8 +60,7 @@ export async function POST(request: NextRequest) {
       optimizationResult, 
       includeBenchmarks = true,
       benchmarkConfigs,
-      userTestCases, // New: User-provided test cases
-      skipTestCaseGeneration = false // New: Skip test case generation flag
+      skipTestCaseGeneration = false // Skip test case generation flag
     } = await request.json()
     
     if (!originalConfig || !optimizationResult) {
@@ -72,16 +70,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Prioritize user test cases, fallback to generated ones
+    // Use standard test cases or benchmark-only evaluation
     let evaluationResult: EvaluationResult
     
-    if (userTestCases && userTestCases.length > 0) {
-      evaluationResult = await generateEvaluationWithUserTestCases(
-        originalConfig, 
-        optimizationResult, 
-        userTestCases
-      )
-    } else if (skipTestCaseGeneration) {
+    if (skipTestCaseGeneration) {
       evaluationResult = await generateBenchmarkOnlyEvaluation(originalConfig, optimizationResult)
     } else {
       evaluationResult = await generateMockEvaluation(originalConfig, optimizationResult)
@@ -117,7 +109,7 @@ export async function POST(request: NextRequest) {
           config: {
             includeBenchmarks,
             benchmarkConfigs,
-            userTestCases: userTestCases?.length || 0,
+            userTestCases: 0,
             skipTestCaseGeneration
           }
         }
@@ -178,129 +170,44 @@ async function generateBenchmarkOnlyEvaluation(
   }
 }
 
-async function generateEvaluationWithUserTestCases(
-  originalConfig: ConfigFile,
-  optimizationResult: OptimizationResult,
-  userTestCases: TestCase[]
-): Promise<EvaluationResult> {
-
-  // Re-evaluate user test cases with actual before/after configs
-  const evaluatedTestCases: TestCase[] = await Promise.all(
-    userTestCases.map(async (testCase) => {
-      const beforeOutput = testCase.beforeOutput || 
-        await simulateResponse(originalConfig.content, testCase.input)
-      const afterOutput = await simulateResponse(optimizationResult.optimizedContent, testCase.input)
-      const score = await evaluateResponses(testCase.input, beforeOutput, afterOutput)
-      
-      return {
-        ...testCase,
-        beforeOutput,
-        afterOutput,
-        score,
-        passed: score > 0.7,
-        metadata: {
-          ...testCase.metadata,
-          evaluatedAt: new Date().toISOString()
-        }
-      }
-    })
-  )
-
-  // Calculate scores based on user test cases
-  const passedTests = evaluatedTestCases.filter(tc => tc.passed).length
-  const avgScore = evaluatedTestCases.reduce((sum, tc) => sum + tc.score, 0) / evaluatedTestCases.length
-
-  const beforeScore = {
-    structureCompliance: 0.65,
-    hallucinationRate: 0.25,
-    responseQuality: avgScore * 0.8, // Base on user test performance
-    overall: avgScore * 0.85
-  }
-
-  const afterScore = {
-    structureCompliance: 0.89,
-    hallucinationRate: 0.12,
-    responseQuality: avgScore,
-    overall: avgScore
-  }
-
-  const improvement = ((afterScore.overall - beforeScore.overall) / beforeScore.overall) * 100
-
-  return {
-    beforeScore,
-    afterScore,
-    improvement,
-    testCases: evaluatedTestCases,
-    metrics: {
-      totalTests: evaluatedTestCases.length,
-      passedTests,
-      averageImprovement: improvement,
-      executionTime: Math.floor(Math.random() * 300) + 100
-    },
-    timestamp: new Date().toISOString()
-  }
-}
 
 async function generateMockEvaluation(
   originalConfig: ConfigFile,
   optimizationResult: OptimizationResult
 ): Promise<EvaluationResult> {
-  // Generate project-specific test cases using the new TestCaseGenerator
-  let testCases: TestCase[]
-  
-  try {
-    testCases = await TestCaseGenerator.generateProjectSpecificTestCases(originalConfig)
-    
-    // Re-evaluate with actual before/after configs
-    const enhancedTestCases: TestCase[] = await Promise.all(
-      testCases.map(async (testCase) => {
-        const beforeOutput = await simulateResponse(originalConfig.content, testCase.input)
-        const afterOutput = await simulateResponse(optimizationResult.optimizedContent, testCase.input)
-        const score = await evaluateResponses(testCase.input, beforeOutput, afterOutput)
-        
-        return {
-          ...testCase,
-          beforeOutput,
-          afterOutput,
-          score,
-          passed: score > 0.7
-        }
-      })
-    )
-    
-    testCases = enhancedTestCases
-  } catch (error) {
-    console.error('Failed to generate project-specific test cases, falling back to generic ones:', error)
-    
-    // Fallback to generic test cases
-    const fallbackInputs = [
-      "What is the capital of France?",
-      "Explain quantum computing in simple terms",
-      "List the top 5 programming languages in 2024",
-      "How do I bake a chocolate cake?",
-      "What are the benefits of renewable energy?"
-    ]
+  // Use fixed set of standard test cases
+  const standardTestInputs = [
+    "What is the capital of France?",
+    "Explain quantum computing in simple terms",
+    "List the top 5 programming languages in 2024",
+    "How do I bake a chocolate cake?",
+    "What are the benefits of renewable energy?",
+    "Write a professional email requesting a meeting",
+    "Summarize the main points of climate change",
+    "Create a simple budget for a college student",
+    "Explain how photosynthesis works",
+    "Describe the difference between AI and machine learning"
+  ]
 
-    testCases = await Promise.all(
-      fallbackInputs.map(async (input) => {
-        const beforeOutput = await simulateResponse(originalConfig.content, input)
-        const afterOutput = await simulateResponse(optimizationResult.optimizedContent, input)
-        const score = await evaluateResponses(input, beforeOutput, afterOutput)
-        
-        return {
-          input,
-          beforeOutput,
-          afterOutput,
-          passed: score > 0.7,
-          score,
-          metadata: {
-            source: 'generated' as const,
-            domain: 'general'
-          }
+  const testCases = await Promise.all(
+    standardTestInputs.map(async (input) => {
+      const beforeOutput = await simulateResponse(originalConfig.content, input)
+      const afterOutput = await simulateResponse(optimizationResult.optimizedContent, input)
+      const score = await evaluateResponses(input, beforeOutput, afterOutput)
+      
+      return {
+        input,
+        beforeOutput,
+        afterOutput,
+        passed: score > 0.7,
+        score,
+        metadata: {
+          source: 'standard' as const,
+          domain: 'general'
         }
-      })
-    )
-  }
+      }
+    })
+  )
   
   const beforeScore = {
     structureCompliance: 0.65,

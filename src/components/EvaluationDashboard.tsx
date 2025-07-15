@@ -1,314 +1,468 @@
 'use client'
 
-import { useState } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Badge } from '@/components/ui/badge'
+import { useState } from 'react';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Label } from '@/components/ui/label';
 import { 
-  Play, 
-  Upload, 
-  FileText, 
-  BarChart3, 
-  Settings,
-  CheckCircle,
+  CheckCircle2, 
+  AlertTriangle, 
+  TrendingUp, 
+  TrendingDown, 
+  Activity, 
+  Shield, 
   Clock,
-  DollarSign
-} from 'lucide-react'
-import { TestCase, EvaluationResult, BenchmarkConfig, ConfigFile, OptimizationResult } from '@/types'
-import { TestCaseUploader } from './TestCaseUploader'
-import { BenchmarkSelector } from './BenchmarkSelector'
-import { EvalResults } from './EvalResults'
+  Target,
+  BarChart3,
+  Info,
+  Eye,
+  ChevronDown,
+  ChevronUp
+} from 'lucide-react';
 
-interface EvaluationDashboardProps {
-  originalConfig?: ConfigFile | null
-  optimizationResult?: OptimizationResult | null
+export interface ObjectiveMetrics {
+  jsonParseSuccess: {
+    original: number;
+    optimized: number;
+    samples: number;
+    confidenceInterval: [number, number];
+  };
+  structureCompliance: {
+    original: number;
+    optimized: number;
+    samples: number;
+    confidenceInterval: [number, number];
+  };
+  errorRate: {
+    original: number;
+    optimized: number;
+    samples: number;
+    confidenceInterval: [number, number];
+  };
+  responseTime: {
+    original: number;
+    optimized: number;
+    samples: number;
+    confidenceInterval: [number, number];
+  };
+  hallucinationRate: {
+    original: number;
+    optimized: number;
+    samples: number;
+    confidenceInterval: [number, number];
+  };
 }
 
-export function EvaluationDashboard({ originalConfig, optimizationResult }: EvaluationDashboardProps) {
-  const [userTestCases, setUserTestCases] = useState<TestCase[]>([])
-  const [benchmarkConfigs, setBenchmarkConfigs] = useState<BenchmarkConfig[]>([
-    { name: 'MMLU', enabled: false, sampleSize: 20, fullDataset: false },
-    { name: 'HellaSwag', enabled: false, sampleSize: 20, fullDataset: false },
-    { name: 'TruthfulQA', enabled: false, sampleSize: 20, fullDataset: false }
-  ])
-  const [evaluationResult, setEvaluationResult] = useState<EvaluationResult | null>(null)
-  const [isRunning, setIsRunning] = useState(false)
-  const [activeTab, setActiveTab] = useState('test-cases')
+export interface BenchmarkResults {
+  name: string;
+  category: string;
+  originalScore: number;
+  optimizedScore: number;
+  samples: number;
+  confidenceInterval: [number, number];
+  examples: {
+    question: string;
+    originalAnswer: string;
+    optimizedAnswer: string;
+    correctAnswer: string;
+    originalCorrect: boolean;
+    optimizedCorrect: boolean;
+    explanation: string;
+  }[];
+}
 
-  const runEvaluation = async () => {
-    if (!originalConfig || !optimizationResult) {
-      alert('Please provide original config and optimization result first')
-      return
-    }
+export interface PairwiseComparison {
+  category: string;
+  originalWins: number;
+  optimizedWins: number;
+  ties: number;
+  totalComparisons: number;
+  confidenceInterval: [number, number];
+  humanAnnotatorAgreement: number;
+}
 
-    setIsRunning(true)
-    try {
-      const response = await fetch('/api/evaluate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          originalConfig,
-          optimizationResult,
-          userTestCases: userTestCases.length > 0 ? userTestCases : undefined,
-          includeBenchmarks: benchmarkConfigs.some(c => c.enabled),
-          benchmarkConfigs: benchmarkConfigs.filter(c => c.enabled)
-        })
-      })
+export interface EvaluationData {
+  objectiveMetrics: ObjectiveMetrics;
+  benchmarkResults: BenchmarkResults[];
+  pairwiseComparisons: PairwiseComparison[];
+  overallAssessment: {
+    significantImprovements: string[];
+    significantRegressions: string[];
+    neutrantChanges: string[];
+    recommendations: string[];
+  };
+  evidence: {
+    [key: string]: {
+      description: string;
+      samples: any[];
+      calculation: string;
+    };
+  };
+}
 
-      const result = await response.json()
-      if (result.success) {
-        setEvaluationResult(result.data)
-        setActiveTab('results')
-      } else {
-        alert('Evaluation failed: ' + result.error)
-      }
-    } catch (error) {
-      console.error('Evaluation error:', error)
-      alert('Evaluation failed')
-    } finally {
-      setIsRunning(false)
-    }
-  }
+interface EvaluationDashboardProps {
+  data: EvaluationData;
+  onViewDetails: (metric: string) => void;
+}
 
-  const estimatedCost = () => {
-    let cost = 0
+export function EvaluationDashboard({ data, onViewDetails }: EvaluationDashboardProps) {
+  const [selectedTab, setSelectedTab] = useState('overview');
+  const [expandedSections, setExpandedSections] = useState<string[]>(['objective']);
+
+  const toggleSection = (section: string) => {
+    setExpandedSections(prev => 
+      prev.includes(section) 
+        ? prev.filter(s => s !== section)
+        : [...prev, section]
+    );
+  };
+
+  const formatConfidenceInterval = (interval: [number, number]) => {
+    return `${interval[0].toFixed(2)}-${interval[1].toFixed(2)}`;
+  };
+
+  const getChangeDirection = (original: number, optimized: number, lowerIsBetter = false) => {
+    const improved = lowerIsBetter ? optimized < original : optimized > original;
+    const change = optimized - original;
+    const percentChange = ((change / original) * 100);
     
-    // User test cases: $0 (no API calls needed)
-    if (userTestCases.length > 0) {
-      cost += 0
-    } else {
-      // Generated test cases: ~$0.01 per test case
-      cost += 8 * 0.01
-    }
-    
-    // Benchmark costs
-    const enabledBenchmarks = benchmarkConfigs.filter(c => c.enabled)
-    enabledBenchmarks.forEach(config => {
-      cost += config.sampleSize * 0.005 // ~$0.005 per benchmark question
-    })
-    
-    return cost
-  }
+    return {
+      improved,
+      change,
+      percentChange: Math.abs(percentChange),
+      direction: change > 0 ? 'up' : 'down'
+    };
+  };
 
-  const getEvaluationStrategy = () => {
-    if (userTestCases.length > 0) {
-      return {
-        primary: 'User-Provided Test Cases',
-        description: `${userTestCases.length} custom test cases`,
-        icon: <Upload className="h-4 w-4 text-green-600" />,
-        cost: '$0.00',
-        accuracy: 'High (your scenarios)'
-      }
-    } else {
-      return {
-        primary: 'AI-Generated Test Cases',
-        description: 'Project-specific generated tests',
-        icon: <FileText className="h-4 w-4 text-blue-600" />,
-        cost: '~$0.08',
-        accuracy: 'Medium (inferred)'
-      }
-    }
-  }
+  const MetricCard = ({ 
+    title, 
+    original, 
+    optimized, 
+    samples, 
+    confidenceInterval, 
+    unit = '%',
+    lowerIsBetter = false,
+    description 
+  }: {
+    title: string;
+    original: number;
+    optimized: number;
+    samples: number;
+    confidenceInterval: [number, number];
+    unit?: string;
+    lowerIsBetter?: boolean;
+    description: string;
+  }) => {
+    const change = getChangeDirection(original, optimized, lowerIsBetter);
+    
+    return (
+      <Card className="p-4">
+        <div className="space-y-3">
+          <div className="flex items-start justify-between">
+            <div>
+              <h4 className="font-medium text-sm">{title}</h4>
+              <p className="text-xs text-muted-foreground">{description}</p>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onViewDetails(title)}
+              className="text-xs"
+            >
+              <Eye className="h-3 w-3 mr-1" />
+              Evidence
+            </Button>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-xs text-muted-foreground">Original</p>
+              <p className="text-lg font-semibold">{original.toFixed(2)}{unit}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Optimized</p>
+              <p className="text-lg font-semibold">{optimized.toFixed(2)}{unit}</p>
+            </div>
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              {change.improved ? (
+                <TrendingUp className="h-4 w-4 text-green-500" />
+              ) : (
+                <TrendingDown className="h-4 w-4 text-red-500" />
+              )}
+              <span className={`text-sm font-medium ${change.improved ? 'text-green-600' : 'text-red-600'}`}>
+                {change.percentChange.toFixed(1)}% {change.improved ? 'improvement' : 'regression'}
+              </span>
+            </div>
+            <Badge variant="secondary" className="text-xs">
+              95% CI: {formatConfidenceInterval(confidenceInterval)}
+            </Badge>
+          </div>
+          
+          <div className="text-xs text-muted-foreground">
+            Based on {samples} samples
+          </div>
+        </div>
+      </Card>
+    );
+  };
 
-  const strategy = getEvaluationStrategy()
-  const totalCost = estimatedCost()
+  const BenchmarkCard = ({ benchmark }: { benchmark: BenchmarkResults }) => {
+    const change = getChangeDirection(benchmark.originalScore, benchmark.optimizedScore);
+    
+    return (
+      <Card className="p-4">
+        <div className="space-y-4">
+          <div className="flex items-start justify-between">
+            <div>
+              <h4 className="font-medium">{benchmark.name}</h4>
+              <p className="text-sm text-muted-foreground">{benchmark.category}</p>
+            </div>
+            <Badge variant={change.improved ? "default" : "destructive"}>
+              {change.improved ? 'Improved' : 'Regressed'}
+            </Badge>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-xs text-muted-foreground">Original Score</p>
+              <p className="text-lg font-semibold">{benchmark.originalScore.toFixed(2)}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Optimized Score</p>
+              <p className="text-lg font-semibold">{benchmark.optimizedScore.toFixed(2)}</p>
+            </div>
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              {change.improved ? (
+                <TrendingUp className="h-4 w-4 text-green-500" />
+              ) : (
+                <TrendingDown className="h-4 w-4 text-red-500" />
+              )}
+              <span className={`text-sm font-medium ${change.improved ? 'text-green-600' : 'text-red-600'}`}>
+                {change.percentChange.toFixed(1)}% change
+              </span>
+            </div>
+            <Badge variant="secondary" className="text-xs">
+              95% CI: {formatConfidenceInterval(benchmark.confidenceInterval)}
+            </Badge>
+          </div>
+          
+          <div className="text-xs text-muted-foreground">
+            {benchmark.samples} samples • {benchmark.examples.length} examples available
+          </div>
+        </div>
+      </Card>
+    );
+  };
 
   return (
     <div className="space-y-6">
-      {/* Evaluation Strategy Overview */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <BarChart3 className="h-5 w-5 text-blue-600" />
-              <CardTitle>Evaluation Strategy</CardTitle>
-            </div>
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2 text-sm">
-                <DollarSign className="h-4 w-4 text-green-600" />
-                <span className="font-medium">Est. Cost: ${totalCost.toFixed(2)}</span>
-              </div>
-              <Button 
-                onClick={runEvaluation}
-                disabled={isRunning || (!originalConfig || !optimizationResult)}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                {isRunning ? (
-                  <>
-                    <Clock className="mr-2 h-4 w-4 animate-spin" />
-                    Running...
-                  </>
-                ) : (
-                  <>
-                    <Play className="mr-2 h-4 w-4" />
-                    Run Evaluation
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4">
-              <div className="flex items-center space-x-2 mb-2">
-                {strategy.icon}
-                <span className="font-medium">{strategy.primary}</span>
-              </div>
-              <p className="text-sm text-slate-600 dark:text-slate-400">{strategy.description}</p>
-              <div className="flex items-center justify-between mt-2">
-                <span className="text-xs text-slate-500">Cost: {strategy.cost}</span>
-                <Badge variant="outline" className="text-xs">{strategy.accuracy}</Badge>
-              </div>
-            </div>
-            
-            <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4">
-              <div className="flex items-center space-x-2 mb-2">
-                <Settings className="h-4 w-4 text-purple-600" />
-                <span className="font-medium">Benchmarks</span>
-              </div>
-              <p className="text-sm text-slate-600 dark:text-slate-400">
-                {benchmarkConfigs.filter(c => c.enabled).length} enabled
-              </p>
-              <div className="flex items-center justify-between mt-2">
-                <span className="text-xs text-slate-500">
-                  Cost: ${(totalCost - (userTestCases.length > 0 ? 0 : 0.08)).toFixed(2)}
-                </span>
-                <Badge variant="outline" className="text-xs">Industry Standard</Badge>
-              </div>
-            </div>
-            
-            <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4">
-              <div className="flex items-center space-x-2 mb-2">
-                <CheckCircle className="h-4 w-4 text-green-600" />
-                <span className="font-medium">Total Evaluation</span>
-              </div>
-              <p className="text-sm text-slate-600 dark:text-slate-400">
-                Complete before/after analysis
-              </p>
-              <div className="flex items-center justify-between mt-2">
-                <span className="text-xs text-slate-500">Total: ${totalCost.toFixed(2)}</span>
-                <Badge variant="default" className="text-xs">Comprehensive</Badge>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Header */}
+      <div className="space-y-2">
+        <h3 className="text-2xl font-semibold flex items-center">
+          <BarChart3 className="h-6 w-6 mr-2" />
+          Evaluation Results
+        </h3>
+        <p className="text-muted-foreground">
+          Comprehensive analysis based on objective metrics and standardized benchmarks
+        </p>
+      </div>
 
-      {/* Main Evaluation Interface */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <Tabs value={selectedTab} onValueChange={setSelectedTab}>
         <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="test-cases" className="flex items-center space-x-2">
-            <Upload className="h-4 w-4" />
-            <span>Test Cases</span>
-            {userTestCases.length > 0 && (
-              <Badge variant="secondary" className="ml-1 text-xs">
-                {userTestCases.length}
-              </Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="benchmarks" className="flex items-center space-x-2">
-            <Settings className="h-4 w-4" />
-            <span>Benchmarks</span>
-            {benchmarkConfigs.some(c => c.enabled) && (
-              <Badge variant="secondary" className="ml-1 text-xs">
-                {benchmarkConfigs.filter(c => c.enabled).length}
-              </Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="settings">Settings</TabsTrigger>
-          <TabsTrigger value="results" disabled={!evaluationResult}>
-            Results
-            {evaluationResult && <CheckCircle className="ml-2 h-4 w-4 text-green-500" />}
-          </TabsTrigger>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="objective">Objective Metrics</TabsTrigger>
+          <TabsTrigger value="benchmarks">Benchmarks</TabsTrigger>
+          <TabsTrigger value="pairwise">Human Preference</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="test-cases">
-          <TestCaseUploader
-            testCases={userTestCases}
-            onTestCasesChange={setUserTestCases}
-            onRunTests={runEvaluation}
-            isRunning={isRunning}
-          />
-        </TabsContent>
-
-        <TabsContent value="benchmarks">
-          <BenchmarkSelector
-            configs={benchmarkConfigs}
-            onChange={setBenchmarkConfigs}
-            isRunning={isRunning}
-          />
-        </TabsContent>
-
-        <TabsContent value="settings">
-          <Card>
-            <CardHeader>
-              <CardTitle>Evaluation Settings</CardTitle>
-              <CardDescription>
-                Configure advanced evaluation options
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg">
-                <h4 className="font-medium text-blue-800 dark:text-blue-200 mb-2">💡 Cost Optimization Tips</h4>
-                <ul className="text-sm text-blue-700 dark:text-blue-300 space-y-1">
-                  <li>• Upload your own test cases to eliminate generation costs</li>
-                  <li>• Start with smaller benchmark sample sizes (10-20 questions)</li>
-                  <li>• Use user test cases for specific scenarios, benchmarks for general validation</li>
-                  <li>• Generated test cases cost ~$0.01 each, benchmarks ~$0.005 per question</li>
-                </ul>
-              </div>
+        <TabsContent value="overview" className="space-y-6">
+          {/* Overall Assessment */}
+          <Card className="p-6">
+            <div className="space-y-4">
+              <h4 className="font-semibold flex items-center">
+                <Target className="h-5 w-5 mr-2" />
+                Overall Assessment
+              </h4>
               
-              <div className="bg-green-50 dark:bg-green-950 p-4 rounded-lg">
-                <h4 className="font-medium text-green-800 dark:text-green-200 mb-2">🎯 Accuracy Benefits</h4>
-                <ul className="text-sm text-green-700 dark:text-green-300 space-y-1">
-                  <li>• User test cases: Test your exact use cases and edge cases</li>
-                  <li>• No API calls needed for user-provided tests</li>
-                  <li>• Immediate feedback on scenarios you care about most</li>
-                  <li>• Combine with benchmarks for comprehensive evaluation</li>
-                </ul>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    <Label className="text-sm font-medium">Significant Improvements</Label>
+                  </div>
+                  <ul className="text-sm space-y-1">
+                    {data.overallAssessment.significantImprovements.map((improvement, idx) => (
+                      <li key={idx} className="text-green-800 ">• {improvement}</li>
+                    ))}
+                  </ul>
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <AlertTriangle className="h-4 w-4 text-red-500" />
+                    <Label className="text-sm font-medium">Significant Regressions</Label>
+                  </div>
+                  <ul className="text-sm space-y-1">
+                    {data.overallAssessment.significantRegressions.map((regression, idx) => (
+                      <li key={idx} className="text-red-800">• {regression}</li>
+                    ))}
+                  </ul>
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <Activity className="h-4 w-4 text-blue-500" />
+                    <Label className="text-sm font-medium">Neutral Changes</Label>
+                  </div>
+                  <ul className="text-sm space-y-1">
+                    {data.overallAssessment.neutrantChanges.map((change, idx) => (
+                      <li key={idx} className="text-muted-foreground">• {change}</li>
+                    ))}
+                  </ul>
+                </div>
               </div>
-            </CardContent>
+            </div>
+          </Card>
+
+          {/* Recommendations */}
+          <Card className="p-6">
+            <div className="space-y-4">
+              <h4 className="font-semibold flex items-center">
+                <Shield className="h-5 w-5 mr-2" />
+                Recommendations
+              </h4>
+              <ul className="space-y-2">
+                {data.overallAssessment.recommendations.map((recommendation, idx) => (
+                  <li key={idx} className="flex items-start space-x-2">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                    <span className="text-sm">{recommendation}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </Card>
         </TabsContent>
 
-        <TabsContent value="results">
-          {evaluationResult ? (
-            <EvalResults
-              result={evaluationResult}
-              onRunAgain={() => {
-                setEvaluationResult(null)
-                setActiveTab('test-cases')
-              }}
-              onRunFullBenchmark={() => {
-                // Enable all benchmarks for full evaluation
-                setBenchmarkConfigs(configs => 
-                  configs.map(c => ({ ...c, enabled: true, fullDataset: true }))
-                )
-                setActiveTab('benchmarks')
-              }}
+        <TabsContent value="objective" className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <MetricCard
+              title="JSON Parse Success Rate"
+              original={data.objectiveMetrics.jsonParseSuccess.original}
+              optimized={data.objectiveMetrics.jsonParseSuccess.optimized}
+              samples={data.objectiveMetrics.jsonParseSuccess.samples}
+              confidenceInterval={data.objectiveMetrics.jsonParseSuccess.confidenceInterval}
+              description="Percentage of responses that produce valid JSON"
             />
-          ) : (
-            <Card>
-              <CardContent className="flex items-center justify-center py-12">
-                <div className="text-center">
-                  <BarChart3 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
-                    No Results Yet
-                  </h3>
-                  <p className="text-gray-500 dark:text-gray-400 mb-4">
-                    Configure your test cases and benchmarks, then run evaluation
-                  </p>
-                  <Button onClick={() => setActiveTab('test-cases')}>
-                    Get Started
-                  </Button>
+            
+            <MetricCard
+              title="Structure Compliance"
+              original={data.objectiveMetrics.structureCompliance.original}
+              optimized={data.objectiveMetrics.structureCompliance.optimized}
+              samples={data.objectiveMetrics.structureCompliance.samples}
+              confidenceInterval={data.objectiveMetrics.structureCompliance.confidenceInterval}
+              description="Percentage of responses matching expected structure"
+            />
+            
+            <MetricCard
+              title="Error Rate"
+              original={data.objectiveMetrics.errorRate.original}
+              optimized={data.objectiveMetrics.errorRate.optimized}
+              samples={data.objectiveMetrics.errorRate.samples}
+              confidenceInterval={data.objectiveMetrics.errorRate.confidenceInterval}
+              lowerIsBetter={true}
+              description="Percentage of responses containing errors"
+            />
+            
+            <MetricCard
+              title="Response Time"
+              original={data.objectiveMetrics.responseTime.original}
+              optimized={data.objectiveMetrics.responseTime.optimized}
+              samples={data.objectiveMetrics.responseTime.samples}
+              confidenceInterval={data.objectiveMetrics.responseTime.confidenceInterval}
+              unit="ms"
+              lowerIsBetter={true}
+              description="Average response time in milliseconds"
+            />
+            
+            <MetricCard
+              title="Hallucination Rate"
+              original={data.objectiveMetrics.hallucinationRate.original}
+              optimized={data.objectiveMetrics.hallucinationRate.optimized}
+              samples={data.objectiveMetrics.hallucinationRate.samples}
+              confidenceInterval={data.objectiveMetrics.hallucinationRate.confidenceInterval}
+              lowerIsBetter={true}
+              description="Percentage of responses with fabricated information"
+            />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="benchmarks" className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {data.benchmarkResults.map((benchmark, idx) => (
+              <BenchmarkCard key={idx} benchmark={benchmark} />
+            ))}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="pairwise" className="space-y-6">
+          <div className="grid grid-cols-1 gap-4">
+            {data.pairwiseComparisons.map((comparison, idx) => (
+              <Card key={idx} className="p-4">
+                <div className="space-y-4">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h4 className="font-medium">{comparison.category}</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Human preference evaluation
+                      </p>
+                    </div>
+                    <Badge variant="secondary">
+                      {comparison.humanAnnotatorAgreement.toFixed(1)}% agreement
+                    </Badge>
+                  </div>
+                  
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="text-center">
+                      <p className="text-2xl font-bold text-green-600">{comparison.optimizedWins}</p>
+                      <p className="text-xs text-muted-foreground">Optimized Wins</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-2xl font-bold text-gray-600">{comparison.ties}</p>
+                      <p className="text-xs text-muted-foreground">Ties</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-2xl font-bold text-red-600">{comparison.originalWins}</p>
+                      <p className="text-xs text-muted-foreground">Original Wins</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm">
+                      <strong>Preference:</strong> {comparison.optimizedWins > comparison.originalWins ? 'Optimized' : 'Original'}
+                      {' '}({(Math.max(comparison.optimizedWins, comparison.originalWins) / comparison.totalComparisons * 100).toFixed(1)}%)
+                    </div>
+                    <Badge variant="secondary" className="text-xs">
+                      95% CI: {formatConfidenceInterval(comparison.confidenceInterval)}
+                    </Badge>
+                  </div>
+                  
+                  <div className="text-xs text-muted-foreground">
+                    {comparison.totalComparisons} pairwise comparisons
+                  </div>
                 </div>
-              </CardContent>
-            </Card>
-          )}
+              </Card>
+            ))}
+          </div>
         </TabsContent>
       </Tabs>
     </div>
-  )
+  );
 } 
