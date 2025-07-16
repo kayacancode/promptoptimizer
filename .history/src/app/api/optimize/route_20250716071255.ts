@@ -21,8 +21,6 @@ export async function POST(request: NextRequest) {
     // Initialize optimization components
     const ape = new AutomatedPromptEngineering({
       domain: 'general',
-      useCase: 'prompt_optimization',
-      targetAudience: 'ai_models',
       reinforcementLearning: true,
       exemplarCount: 5
     })
@@ -38,7 +36,11 @@ export async function POST(request: NextRequest) {
     )
 
     // Run optimization with context
-    const optimizationResult = await ape.optimize(prompt)
+    const optimizationResult = await ape.optimize(prompt, {
+      requirements,
+      similarPrompts: similarPrompts.map(p => p.content),
+      modelConfigs
+    })
 
     // Run initial evaluation on optimized prompt
     const runner = new BenchmarkRunner()

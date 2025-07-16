@@ -76,11 +76,7 @@ export class BenchmarkRunner {
             temperature: 0.7,
             messages: [{ role: 'user', content: prompt }]
           })
-          const content = anthropicResponse.content[0]
-          if (content.type !== 'text') {
-            throw new Error('Invalid response type')
-          }
-          return content.text
+          return anthropicResponse.content[0].text
 
         case 'gpt-4':
           const openaiResponse = await openai.chat.completions.create({

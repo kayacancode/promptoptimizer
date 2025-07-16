@@ -263,13 +263,6 @@ export interface EvaluationMetrics {
   humanEvalScore?: number
 }
 
-export interface BaseMetrics {
-  totalTests?: number
-  passedTests?: number
-  averageImprovement?: number
-  executionTime?: number
-}
-
 export interface ChangeProposal {
   id: string
   title: string

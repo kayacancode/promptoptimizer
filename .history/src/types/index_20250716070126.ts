@@ -263,13 +263,6 @@ export interface EvaluationMetrics {
   humanEvalScore?: number
 }
 
-export interface BaseMetrics {
-  totalTests?: number
-  passedTests?: number
-  averageImprovement?: number
-  executionTime?: number
-}
-
 export interface ChangeProposal {
   id: string
   title: string
@@ -343,65 +336,4 @@ export interface ExtendedEvaluationMetrics extends EvaluationMetrics {
   mmluScore?: number
   hellaSwagScore?: number
   truthfulQAScore?: number
-}
-
-export interface ModelEvaluationResult {
-  model: string
-  hallucinationRate: number
-  structureScore: number
-  consistencyScore: number
-  totalSamples: number
-}
-
-export interface ModelEvaluationMetrics {
-  hallucinationRates: {
-    haiku?: number
-    sonnet?: number
-    gpt4?: number
-    gemini?: number
-  }
-  sentenceStructureScores: {
-    haiku?: number
-    sonnet?: number
-    gpt4?: number
-    gemini?: number
-  }
-  responseConsistency: {
-    haiku?: number
-    sonnet?: number
-    gpt4?: number
-    gemini?: number
-  }
-  modelResults?: ModelComparisonResult
-}
-
-export interface ModelComparisonResult {
-  originalPromptResults: ModelEvaluationResult[]
-  optimizedPromptResults: ModelEvaluationResult[]
-  improvements: Record<string, number>
-  overallImprovement: number
-  timestamp: string
-  configuration: { name: string; enabled: boolean }[]
-}
-
-export interface ExtendedEvaluationMetrics extends BaseMetrics {
-  modelResults?: ModelComparisonResult
-  hallucinationRates?: {
-    haiku?: number
-    sonnet?: number
-    gpt4?: number
-    gemini?: number
-  }
-  sentenceStructureScores?: {
-    haiku?: number
-    sonnet?: number
-    gpt4?: number
-    gemini?: number
-  }
-  responseConsistency?: {
-    haiku?: number
-    sonnet?: number
-    gpt4?: number
-    gemini?: number
-  }
 } 

@@ -1,13 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { BenchmarkRunner } from '@/lib/benchmarks/benchmark-runner'
 
-interface ModelConfig {
-  name: string
-  enabled: boolean
-  temperature?: number
-  maxTokens?: number
-}
-
 export async function POST(request: NextRequest) {
   try {
     const { 
@@ -34,7 +27,7 @@ export async function POST(request: NextRequest) {
     let totalImprovement = 0
     let improvementCount = 0
 
-    for (const model of modelConfigs.filter((m: ModelConfig) => m.enabled)) {
+    for (const model of modelConfigs.filter(m => m.enabled)) {
       const originalResult = originalResults.find(r => r.model === model.name)
       const optimizedResult = optimizedResults.find(r => r.model === model.name)
       
