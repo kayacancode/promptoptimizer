@@ -35,14 +35,28 @@ interface ModelConfig {
 interface OptimizationResult {
   originalPrompt: string
   optimizedPrompt: string
-  modelResults: {
+  explanation: string
+  improvements: any[]
+  timestamp: string
+  // Evaluation results (added after evaluation)
+  modelResults?: {
     model: string
     hallucinationRate: number
     structureScore: number
     consistencyScore: number
   }[]
-  improvements: Record<string, number>
-  overallImprovement: number
+  overallImprovement?: number
+  autoOptimization?: {
+    status: 'success' | 'failed' | 'no_improvement'
+    strategy: string
+    selectedCandidate: {
+      score?: number
+    }
+    trigger: {
+      reason: string
+      originalScore?: number
+    }
+  }
 }
 
 interface OptimizationSettings {
@@ -59,6 +73,7 @@ export function PromptOptimizationFlow({ onOptimizationComplete }: PromptOptimiz
   const [activeStep, setActiveStep] = useState('input')
   const [prompt, setPrompt] = useState('')
   const [requirements, setRequirements] = useState('')
+  const [evaluationInput, setEvaluationInput] = useState('')
   const [settings, setSettings] = useState<OptimizationSettings>({
     codeContextEnabled: true,
     sampleSize: 5,
@@ -72,6 +87,7 @@ export function PromptOptimizationFlow({ onOptimizationComplete }: PromptOptimiz
   ])
   const [optimizationResult, setOptimizationResult] = useState<OptimizationResult | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [autoOptimizationStatus, setAutoOptimizationStatus] = useState<string | null>(null)
 
   const handleModelConfigChange = (name: string, field: keyof ModelConfig, value: any) => {
     setModelConfigs(configs => {
@@ -157,6 +173,11 @@ export function PromptOptimizationFlow({ onOptimizationComplete }: PromptOptimiz
       }
       
       setOptimizationResult(data.data)
+      
+      // Debug auto-optimization
+      console.log('[DEBUG] Optimization result:', data.data)
+      console.log('[DEBUG] Auto-optimization data:', data.data.autoOptimization)
+      
       setIsLoading(false)
       
       // Call completion callback to refresh token balance
@@ -173,6 +194,8 @@ export function PromptOptimizationFlow({ onOptimizationComplete }: PromptOptimiz
 
   const runModelEvaluation = async () => {
     setIsLoading(true)
+    setAutoOptimizationStatus(null)
+    
     try {
       const response = await fetch('/api/evaluate', {
         method: 'POST',
@@ -180,15 +203,21 @@ export function PromptOptimizationFlow({ onOptimizationComplete }: PromptOptimiz
         body: JSON.stringify({
           originalPrompt: prompt,
           optimizedPrompt: optimizationResult?.optimizedPrompt,
+          evaluationInput: evaluationInput,
           modelConfigs: modelConfigs.filter(c => c.enabled)
         })
       })
       const data = await response.json()
       setOptimizationResult(prev => ({ ...prev, ...data.data }))
       setIsLoading(false)
+      setAutoOptimizationStatus(null)
+      
+      // Move to results step after evaluation completes
+      setActiveStep('results')
     } catch (error) {
       console.error('Evaluation error:', error)
       setIsLoading(false)
+      setAutoOptimizationStatus(null)
     }
   }
 
@@ -593,12 +622,29 @@ export function PromptOptimizationFlow({ onOptimizationComplete }: PromptOptimiz
                         <Sparkles className="h-8 w-8 text-black" />
                       </div>
                       <h3 className="text-xl font-semibold mb-2 text-white">Generating...</h3>
-                      <p className="text-gray-400 mb-6">AI is analyzing and improving your prompt...</p>
+                      <p className="text-gray-400 mb-6">bestmate is analyzing and improving your prompt...</p>
                       <Progress value={75} className="w-full max-w-md mx-auto mb-4" />
                       <p className="text-sm text-gray-400">This may take a few moments</p>
                     </div>
                   ) : optimizationResult ? (
                     <div className="space-y-6">
+                      {/* Agent Status Indicator - Always Show */}
+                      <div className="bg-gray-800/30 rounded-lg p-4 border border-gray-600/50">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <div className="flex items-center bg-green-500/20 rounded-full px-3 py-1 mr-3">
+                              <div className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></div>
+                              <span className="text-green-400 text-sm font-medium">ONLINE</span>
+                            </div>
+                            <span className="text-white font-medium">Autonomous Agent</span>
+                          </div>
+                          <div className="flex items-center">
+                            <span className="text-gray-300 text-sm mr-2">Ready to monitor evaluation</span>
+                            <Brain className="h-4 w-4 text-gray-400" />
+                          </div>
+                        </div>
+                      </div>
+
                       <div className="bg-green-50 rounded-lg p-6 border border-green-200">
                         <div className="flex items-center mb-4">
                           <CheckCircle2 className="h-6 w-6 text-green-600 mr-3" />
@@ -625,13 +671,10 @@ export function PromptOptimizationFlow({ onOptimizationComplete }: PromptOptimiz
                           Back to Settings
                         </Button>
                         <Button 
-                          onClick={() => {
-                            setActiveStep('evaluate')
-                            runModelEvaluation()
-                          }}
+                          onClick={() => setActiveStep('evaluate')}
                           className="bg-white  border-2 border-black text-black hover:bg-gray-200 px-8 py-3 text-lg"
                         >
-                          Run Evaluation
+                          Test Performance
                           <BarChart3 className="ml-2 h-5 w-5" />
                         </Button>
                       </div>
@@ -666,16 +709,48 @@ export function PromptOptimizationFlow({ onOptimizationComplete }: PromptOptimiz
                       <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
                         <BarChart3 className="h-8 w-8 text-black" />
                       </div>
-                      <h3 className="text-xl font-semibold mb-2 text-white">Generating...</h3>
-                      <p className="text-gray-400 mb-6">Testing performance across models...</p>
+                      <h3 className="text-xl font-semibold mb-2 text-white">Evaluating Performance...</h3>
+                      <p className="text-gray-400 mb-6">Testing your prompts across models...</p>
                       <Progress value={90} className="w-full max-w-md mx-auto mb-4" />
-                      <p className="text-sm text-gray-400">Analyzing results...</p>
+                      
+                      {autoOptimizationStatus && (
+                        <div className="bg-gray-800/50 border border-gray-600 rounded-lg p-4 mt-6 max-w-md mx-auto">
+                          <div className="flex items-center justify-center mb-2">
+                            <Sparkles className="h-5 w-5 text-white mr-2 animate-pulse" />
+                            <span className="text-white font-medium">Auto-Optimization Active</span>
+                          </div>
+                          <p className="text-sm text-gray-300">{autoOptimizationStatus}</p>
+                        </div>
+                      )}
+                      
+                      <p className="text-sm text-gray-400">
+                        {autoOptimizationStatus ? 'Applying autonomous improvements...' : 'Analyzing results...'}
+                      </p>
                     </div>
                   ) : (
                     <div className="space-y-6">
                       <div className="bg-blue-50 rounded-lg p-6 border border-blue-200">
                         <h3 className="text-lg font-semibold text-blue-900 mb-2">Evaluation Ready</h3>
                         <p className="text-blue-800">Your optimized prompt is ready for comprehensive testing.</p>
+                      </div>
+
+                      {/* Evaluation Input */}
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="evaluation-input" className="text-base font-medium text-white">
+                            Test Input for Evaluation
+                          </Label>
+                          <p className="text-sm text-gray-400 mb-3">
+                            Provide a sample input to test both prompts with real context
+                          </p>
+                          <Textarea
+                            id="evaluation-input"
+                            placeholder="Enter test input that will be used with your prompt (e.g., a question, request, or scenario to evaluate)"
+                            value={evaluationInput}
+                            onChange={(e) => setEvaluationInput(e.target.value)}
+                            className="min-h-[100px] bg-gray-800 border-gray-600 text-white placeholder-gray-400"
+                          />
+                        </div>
                       </div>
 
                       <div className="flex items-center justify-between pt-6 border-t">
@@ -687,11 +762,12 @@ export function PromptOptimizationFlow({ onOptimizationComplete }: PromptOptimiz
                           Back to Optimization
                         </Button>
                         <Button 
-                          onClick={() => setActiveStep('results')}
-                          className="bg-white border-2 border-black text-black hover:bg-gray-200 px-8 py-3 text-lg"
+                          onClick={runModelEvaluation}
+                          disabled={!evaluationInput.trim()}
+                          className="bg-white border-2 border-black text-black hover:bg-gray-200 px-8 py-3 text-lg disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          View Results
-                          <TrendingUp className="ml-2 h-5 w-5" />
+                          Run Evaluation
+                          <BarChart3 className="ml-2 h-5 w-5" />
                         </Button>
                       </div>
                     </div>
@@ -715,6 +791,82 @@ export function PromptOptimizationFlow({ onOptimizationComplete }: PromptOptimiz
                 <CardContent className="p-8">
                   {optimizationResult ? (
                     <div className="space-y-8">
+                      {/* Agent Status Indicator - Always Show */}
+                      <div className="bg-gray-800/30 rounded-lg p-4 border border-gray-600/50">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <div className="flex items-center bg-green-500/20 rounded-full px-3 py-1 mr-3">
+                              <div className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></div>
+                              <span className="text-green-400 text-sm font-medium">ONLINE</span>
+                            </div>
+                            <span className="text-white font-medium">Autonomous Agent</span>
+                          </div>
+                          <div className="flex items-center">
+                            <span className="text-gray-300 text-sm mr-2">
+                              {optimizationResult.autoOptimization 
+                                ? optimizationResult.autoOptimization.status === 'success' 
+                                  ? 'Applied optimization' 
+                                  : optimizationResult.autoOptimization.status === 'no_improvement'
+                                  ? 'Monitoring - no action needed'
+                                  : 'Monitoring - error occurred'
+                                : 'Monitoring - performance good'
+                              }
+                            </span>
+                            <Brain className="h-4 w-4 text-gray-400" />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Auto-Optimization Badges */}
+                      {optimizationResult.autoOptimization && (
+                        <>
+                          {optimizationResult.autoOptimization.status === 'success' && (
+                            <div className="bg-gray-800 rounded-lg p-6 border border-gray-600">
+                              <div className="flex items-center mb-4">
+                                <Sparkles className="h-6 w-6 text-white mr-3" />
+                                <h3 className="text-xl font-semibold text-white">🤖 Smart Auto-Optimization Applied!</h3>
+                              </div>
+                              <p className="text-gray-300 mb-3">
+                                Improved from <span className="font-semibold text-white">{Math.round(optimizationResult.autoOptimization.trigger.originalScore || 0)}%</span> → <span className="font-semibold text-white">{Math.round(optimizationResult.overallImprovement || 0)}%</span> using <span className="font-semibold text-white">{optimizationResult.autoOptimization.strategy}</span>
+                              </p>
+                              <p className="text-sm text-gray-400">
+                                Reason: {optimizationResult.autoOptimization.trigger.reason}
+                              </p>
+                            </div>
+                          )}
+                          
+                          {optimizationResult.autoOptimization.status === 'no_improvement' && (
+                            <div className="bg-gray-700 rounded-lg p-6 border border-gray-500">
+                              <div className="flex items-center mb-4">
+                                <Target className="h-6 w-6 text-gray-300 mr-3" />
+                                <h3 className="text-xl font-semibold text-white">🔄 Auto-Optimization Attempted</h3>
+                              </div>
+                              <p className="text-gray-300 mb-3">
+                                Tested <span className="font-semibold text-white">{optimizationResult.autoOptimization.strategy}</span> but no significant improvement found
+                              </p>
+                              <p className="text-sm text-gray-400">
+                                Reason: {optimizationResult.autoOptimization.trigger.reason}
+                              </p>
+                            </div>
+                          )}
+                          
+                          {optimizationResult.autoOptimization.status === 'failed' && (
+                            <div className="bg-gray-700 rounded-lg p-6 border border-gray-500">
+                              <div className="flex items-center mb-4">
+                                <Clock className="h-6 w-6 text-gray-300 mr-3" />
+                                <h3 className="text-xl font-semibold text-white">❌ Auto-Optimization Failed</h3>
+                              </div>
+                              <p className="text-gray-300 mb-3">
+                                Attempted to improve prompt but encountered an error
+                              </p>
+                              <p className="text-sm text-gray-400">
+                                Reason: {optimizationResult.autoOptimization.trigger.reason}
+                              </p>
+                            </div>
+                          )}
+                        </>
+                      )}
+
                       {/* Overall Improvement */}
                       <div className="text-center bg-gray-800 rounded-xl p-8 border border-gray-700">
                         <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-4">
@@ -722,7 +874,10 @@ export function PromptOptimizationFlow({ onOptimizationComplete }: PromptOptimiz
                         </div>
                         <h3 className="text-2xl font-bold text-white mb-2">Overall Improvement</h3>
                         <div className="text-6xl font-bold text-white mb-2">
-                          {optimizationResult.overallImprovement ? optimizationResult.overallImprovement.toFixed(1) : '0'}%
+                          {optimizationResult.overallImprovement !== undefined 
+                            ? `${optimizationResult.overallImprovement > 0 ? '+' : ''}${optimizationResult.overallImprovement.toFixed(1)}%`
+                            : 'Run evaluation first'
+                          }
                         </div>
                         <p className="text-gray-400">Performance increase across all models</p>
                         

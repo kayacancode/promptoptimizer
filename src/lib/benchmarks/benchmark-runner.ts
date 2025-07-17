@@ -35,6 +35,70 @@ export class BenchmarkRunner {
   }
 
   /**
+   * Run prompt evaluation with specific user input for testing
+   */
+  async runPromptWithInput(
+    systemPrompt: string,
+    userInput: string,
+    models: { name: string; enabled: boolean }[],
+    sampleSize: number = 1
+  ): Promise<ModelEvaluationResult[]> {
+    const enabledModels = models.filter(m => m.enabled)
+    
+    // Run all model evaluations with the specific input
+    const results = await Promise.all(
+      enabledModels.map(model => 
+        this.evaluatePromptWithInput(systemPrompt, userInput, model.name, sampleSize)
+      )
+    )
+
+    return results
+  }
+
+  /**
+   * Evaluate a prompt with specific input using a model
+   */
+  private async evaluatePromptWithInput(
+    systemPrompt: string,
+    userInput: string,
+    modelName: string,
+    sampleSize: number
+  ): Promise<ModelEvaluationResult> {
+    try {
+      // Generate multiple responses with the system prompt and user input
+      const responses = await Promise.all(
+        Array(sampleSize).fill(null).map(() => 
+          this.generateModelResponseWithInput(systemPrompt, userInput, modelName)
+        )
+      )
+
+      // Calculate metrics
+      const hallucinationRate = this.calculateHallucinationRate(responses)
+      const structureScore = this.calculateStructureScore(responses)
+      const consistencyScore = this.calculateConsistencyScore(responses)
+
+      return {
+        model: modelName,
+        hallucinationRate,
+        structureScore,
+        consistencyScore,
+        totalSamples: sampleSize,
+        responses: responses
+      }
+    } catch (error) {
+      console.error(`Error evaluating model ${modelName} with input:`, error)
+      return {
+        model: modelName,
+        hallucinationRate: 0,
+        structureScore: 0,
+        consistencyScore: 0,
+        totalSamples: 0,
+        responses: []
+      }
+    }
+  }
+
+  /**
    * Evaluate a prompt with a specific model
    */
   private async evaluateWithModel(
@@ -77,6 +141,46 @@ export class BenchmarkRunner {
   }
 
   /**
+   * Generate a response using system prompt and user input
+   */
+  private async generateModelResponseWithInput(systemPrompt: string, userInput: string, modelName: string): Promise<string> {
+    // Retry logic for overloaded APIs (beta: 1 retry only)
+    const maxRetries = 1
+    let retryCount = 0
+    
+    while (retryCount < maxRetries) {
+      try {
+        const timeoutMs = modelName.includes('gemini') ? 60000 : 30000
+        
+        const timeoutPromise = new Promise<never>((_, reject) => 
+          setTimeout(() => reject(new Error('Model response timeout')), timeoutMs)
+        )
+
+        const responsePromise = this.callModelWithInput(systemPrompt, userInput, modelName)
+        const response = await Promise.race([responsePromise, timeoutPromise])
+        
+        return response
+      } catch (error: any) {
+        retryCount++
+        console.error(`Error generating response from ${modelName} (attempt ${retryCount}/${maxRetries}):`, error)
+        
+        // If it's a 529 (overloaded) error, wait and retry
+        if (error.status === 529 && retryCount < maxRetries) {
+          const waitTime = 1000 * retryCount // 1s, 2s, 3s
+          console.log(`API overloaded, waiting ${waitTime}ms before retry...`)
+          await new Promise(resolve => setTimeout(resolve, waitTime))
+          continue
+        }
+        
+        // If all retries failed or different error, return error message
+        return `Error: ${modelName} ${error.status === 529 ? 'overloaded' : 'timeout'} - model may be overloaded`
+      }
+    }
+    
+    return `Error: ${modelName} failed after ${maxRetries} retries`
+  }
+
+  /**
    * Generate a response from a specific model with timeout
    */
   private async generateModelResponse(prompt: string, modelName: string): Promise<string> {
@@ -96,6 +200,62 @@ export class BenchmarkRunner {
       console.error(`Error generating response from ${modelName}:`, error)
       // Return a more graceful error message that won't break evaluation
       return `Error: ${modelName} timeout - model may be overloaded`
+    }
+  }
+
+  /**
+   * Call model API with system prompt and user input
+   */
+  private async callModelWithInput(systemPrompt: string, userInput: string, modelName: string): Promise<string> {
+    switch (modelName) {
+      case 'claude-3-haiku-20240307':
+      case 'claude-3-5-sonnet-20240620':
+      case 'claude-3-sonnet':
+      case 'claude-3-haiku':
+        const anthropicModelName = modelName === 'claude-3-sonnet' 
+          ? 'claude-3-5-sonnet-20240620' 
+          : modelName === 'claude-3-haiku' 
+          ? 'claude-3-haiku-20240307' 
+          : modelName
+        const anthropicResponse = await anthropic.messages.create({
+          model: anthropicModelName,
+          max_tokens: 1000,
+          temperature: 0.7,
+          system: systemPrompt,
+          messages: [{ role: 'user', content: userInput }]
+        })
+        const content = anthropicResponse.content[0]
+        if (content.type !== 'text') {
+          throw new Error('Invalid response type')
+        }
+        return content.text
+
+      case 'gpt-4o':
+        const openaiResponse = await openai.chat.completions.create({
+          model: 'gpt-4o',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userInput }
+          ],
+          max_tokens: 1000,
+          temperature: 0.7
+        })
+        return openaiResponse.choices[0].message.content || ''
+
+      case 'gemini-2.5-flash':
+      case 'gemini-flash':
+        const { GoogleGenerativeAI } = await import('@google/generative-ai')
+        const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GEMINI_API_KEY || '')
+        const geminiModel = genAI.getGenerativeModel({ 
+          model: "gemini-2.5-flash",
+          systemInstruction: systemPrompt
+        })
+        
+        const result = await geminiModel.generateContent(userInput)
+        return result.response.text()
+
+      default:
+        throw new Error(`Unsupported model: ${modelName}`)
     }
   }
 

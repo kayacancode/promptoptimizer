@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { SessionProvider } from '@/components/providers/SessionProvider'
 import { Footer } from '@/components/Footer'
+import { Analytics } from '@vercel/analytics/next'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -18,7 +19,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
+      <body className={inter.className} suppressHydrationWarning={true}>
         <SessionProvider>
           <div className="min-h-screen flex flex-col">
             <main className="flex-1">
@@ -27,6 +28,7 @@ export default function RootLayout({
             <Footer />
           </div>
         </SessionProvider>
+        <Analytics />
       </body>
     </html>
   )

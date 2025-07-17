@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { BenchmarkRunner } from '@/lib/benchmarks/benchmark-runner'
 import { UserAuthManager } from '@/lib/user-auth'
+import { AutoOptimizer } from '@/lib/autonomous/auto-optimizer'
 import { createClient } from '@supabase/supabase-js'
 
 export async function POST(request: NextRequest) {
@@ -70,21 +71,14 @@ export async function POST(request: NextRequest) {
     // Step 1: Optimize the prompt
     const optimizationResult = await optimizePrompt(prompt, requirements)
 
-    // Step 2: Test optimized prompt with configured models
-    const runner = new BenchmarkRunner()
-    const evaluationResults = await runner.runModelEvaluations(
-      optimizationResult.optimizedPrompt, 
-      modelConfigs
-    )
+    // Step 2: Return optimization results (evaluation will happen separately)
+    console.log(`[DEBUG] Optimization confidence: ${optimizationResult.confidence * 100}%`)
 
-    // Step 3: Return results
     const response = {
       originalPrompt: prompt,
       optimizedPrompt: optimizationResult.optimizedPrompt,
       explanation: optimizationResult.explanation,
-      modelResults: evaluationResults,
       improvements: optimizationResult.changes,
-      overallImprovement: optimizationResult.confidence * 100,
       timestamp: new Date().toISOString()
     }
 
@@ -117,26 +111,59 @@ async function optimizePrompt(originalPrompt: string, requirements: string) {
         apiKey: process.env.ANTHROPIC_API_KEY
       })
       
-      const optimizationPrompt = `You are a world-class prompt engineer. Optimize this prompt using expert best practices.
+      const optimizationPrompt = `You are acting as a world-class Prompt Engineering Evaluator Agent.
 
-Original Prompt: ${JSON.stringify(originalPrompt)}
-Requirements: ${JSON.stringify(requirements)}
-
-Apply these principles:
-1. CLARITY & DIRECTNESS - Make unambiguous and specific
-2. OUTCOME-DRIVEN - Add clear success criteria  
-3. EDGE CASE HANDLING - Instructions for unclear/missing data
-4. LEVERAGE MODEL STRENGTHS - Trust capabilities, provide rich context
-5. TRANSPARENT & MAINTAINABLE - Clear structure and organization
-6. EMPATHETIC COMMUNICATION - Clear intent for model and humans
-7. COLLABORATIVE APPROACH - Encourage model self-assessment
-
-Respond with ONLY this JSON format:
-{
-  "optimizedPrompt": "improved prompt here",
-  "explanation": "brief explanation",
-  "changes": [{"type": "addition", "description": "what changed", "reasoning": "why"}]
-}`
+      Your role: Assess, rewrite, and optimize the provided user prompt so it can be directly used in a production LLM workflow by another user. The optimized prompt must be copy-paste ready for tools like ChatGPT, Claude, or similar models. Prioritize clear task instructions, output formatting guidance, and adaptability to real-world inputs.
+      
+      Original Prompt:
+      ${JSON.stringify(originalPrompt)}
+      
+      Additional Context or Requirements:
+      ${JSON.stringify(requirements)}
+      
+      Evaluation Checklist:
+      1. CLARITY & DIRECTNESS — Instructions must be unambiguous and specific.
+      2. ITERATIVE MINDSET — Prompt should encourage testing and model self-assessment if applicable.
+      3. OUTCOME-DRIVEN — Must include clear success criteria and expected output format.
+      4. HANDLES EDGE CASES — Instructions for missing, malformed, or unclear input must be included.
+      5. USES EXAMPLES THOUGHTFULLY — Provide helpful examples without overfitting.
+      6. LEVERAGES MODEL STRENGTHS — Provide rich, relevant context where needed.
+      7. TRANSPARENT & MAINTAINABLE — Structure must be easy for other humans to understand and reuse.
+      8. EMPATHETIC COMMUNICATION — Intent must be clear for both the model and human readers.
+      9. USES THE MODEL AS A COLLABORATOR — Where relevant, include instructions for the model to reflect or critique.
+      10. FOCUSES ON GENERALIZATION — Prompt should work reliably across varied real-world inputs.
+      
+      Important: This optimized prompt is meant for another user to put into their own LLM workflow. Ensure language is instructional, structured, and formatted appropriately for copy-paste use.
+      
+      ✅ Respond with ONLY valid JSON in this format:
+      {
+        "optimizedPrompt": "Final optimized prompt text, ready to use in an LLM system.",
+        "evaluationChecklist": [
+          {
+            "category": "Clarity & Directness",
+            "score": 1-5,
+            "feedback": "Specific feedback for this category."
+          },
+          {
+            "category": "Iterative Mindset",
+            "score": 1-5,
+            "feedback": "Specific feedback for this category."
+          }
+          // Continue for all 10 categories
+        ],
+        "summaryFeedback": "Clear, outcome-driven summary of key changes and improvements.",
+        "exampleSchema": {
+          "input": "Realistic input example a user might provide.",
+          "optimizedPrompt": "How the optimized prompt would appear for that input.",
+          "expectedOutputFormat": "Markdown, JSON, plain text, etc."
+        }
+      }
+      
+      Important Rules:
+      - Respond with ONLY valid JSON. No commentary or extra explanation outside the JSON object.
+      - Use language and formatting suitable for direct use in production LLM workflows.
+      - Be as specific and actionable as possible. Avoid vague statements.
+      `;
 
       // Add timeout to Claude call
       const timeoutPromise = new Promise<never>((_, reject) => 

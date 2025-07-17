@@ -351,6 +351,7 @@ export interface ModelEvaluationResult {
   structureScore: number
   consistencyScore: number
   totalSamples: number
+  responses?: string[]  // Store actual model responses
 }
 
 export interface ModelEvaluationMetrics {
@@ -404,4 +405,53 @@ export interface ExtendedEvaluationMetrics extends BaseMetrics {
     gpt4?: number
     gemini?: number
   }
+}
+
+// Auto-Optimization Types
+export interface AutoOptimizationTrigger {
+  type: 'performance_threshold' | 'manual' | 'scheduled'
+  threshold?: number
+  reason: string
+  originalScore?: number
+  timestamp: string
+}
+
+export interface AutoOptimizationStrategy {
+  id: string
+  name: string
+  description: string
+  focus: 'clarity' | 'examples' | 'structure' | 'constraints' | 'hybrid'
+  promptModifications: string[]
+}
+
+export interface AutoOptimizationCandidate {
+  id: string
+  prompt: string
+  strategy: AutoOptimizationStrategy
+  score?: number
+  evaluationResults?: ModelEvaluationResult[]
+  generatedAt: string
+}
+
+export interface AutoOptimizationResult {
+  trigger: AutoOptimizationTrigger
+  originalPrompt: string
+  originalScore: number
+  candidates: AutoOptimizationCandidate[]
+  selectedCandidate: AutoOptimizationCandidate
+  improvement: number
+  strategy: string
+  executionTime: number
+  status: 'success' | 'failed' | 'no_improvement'
+  userAccepted?: boolean
+  timestamp: string
+}
+
+export interface AutoOptimizationConfig {
+  enabled: boolean
+  performanceThreshold: number
+  maxCandidates: number
+  strategies: AutoOptimizationStrategy[]
+  autoAcceptThreshold?: number
+  requireUserApproval: boolean
 } 
