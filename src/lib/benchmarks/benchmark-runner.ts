@@ -1,6 +1,7 @@
 import { ModelEvaluationResult } from '@/types'
 import Anthropic from '@anthropic-ai/sdk'
 import OpenAI from 'openai'
+import { GeminiClient } from '@/lib/llm/gemini-client'
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || '',
@@ -10,21 +11,25 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || '',
 })
 
+const gemini = new GeminiClient(process.env.GOOGLE_GEMINI_API_KEY || '')
+
 export class BenchmarkRunner {
   /**
-   * Run evaluations across multiple models
+   * Run evaluations across multiple models in parallel
    */
   async runModelEvaluations(
     prompt: string,
     models: { name: string; enabled: boolean }[],
-    sampleSize: number = 5
+    sampleSize: number = 1
   ): Promise<ModelEvaluationResult[]> {
-    const results: ModelEvaluationResult[] = []
-
-    for (const model of models.filter(m => m.enabled)) {
-      const result = await this.evaluateWithModel(prompt, model.name, sampleSize)
-      results.push(result)
-    }
+    const enabledModels = models.filter(m => m.enabled)
+    
+    // Run all model evaluations in parallel
+    const results = await Promise.all(
+      enabledModels.map(model => 
+        this.evaluateWithModel(prompt, model.name, sampleSize)
+      )
+    )
 
     return results
   }
@@ -37,73 +42,117 @@ export class BenchmarkRunner {
     modelName: string,
     sampleSize: number
   ): Promise<ModelEvaluationResult> {
-    const responses: string[] = []
-    let totalTokens = 0
-    
-    // Generate multiple responses to check consistency
-    for (let i = 0; i < sampleSize; i++) {
-      const response = await this.generateModelResponse(prompt, modelName)
-      responses.push(response)
-      // Approximate token count based on words (rough estimate)
-      totalTokens += response.split(/\s+/).length * 1.3
-    }
+    try {
+      // Generate multiple responses in parallel
+      const responses = await Promise.all(
+        Array(sampleSize).fill(null).map(() => 
+          this.generateModelResponse(prompt, modelName)
+        )
+      )
 
-    // Calculate metrics
-    const hallucinationRate = await this.calculateHallucinationRate(responses)
-    const structureScore = this.calculateStructureScore(responses)
-    const consistencyScore = this.calculateConsistencyScore(responses)
+      // Calculate metrics
+      const hallucinationRate = this.calculateHallucinationRate(responses)
+      const structureScore = this.calculateStructureScore(responses)
+      const consistencyScore = this.calculateConsistencyScore(responses)
 
-    return {
-      model: modelName,
-      hallucinationRate,
-      structureScore,
-      consistencyScore,
-      totalSamples: sampleSize
+      return {
+        model: modelName,
+        hallucinationRate,
+        structureScore,
+        consistencyScore,
+        totalSamples: sampleSize,
+        responses: responses  // Store the actual responses
+      }
+    } catch (error) {
+      console.error(`Error evaluating model ${modelName}:`, error)
+      return {
+        model: modelName,
+        hallucinationRate: 0,
+        structureScore: 0,
+        consistencyScore: 0,
+        totalSamples: 0,
+        responses: []  // Empty responses for failed models
+      }
     }
   }
 
   /**
-   * Generate a response from a specific model
+   * Generate a response from a specific model with timeout
    */
   private async generateModelResponse(prompt: string, modelName: string): Promise<string> {
     try {
-      switch (modelName) {
-        case 'claude-3-haiku':
-        case 'claude-3-sonnet':
-          const anthropicResponse = await anthropic.messages.create({
-            model: modelName,
-            max_tokens: 1000,
-            temperature: 0.7,
-            messages: [{ role: 'user', content: prompt }]
-          })
-          const content = anthropicResponse.content[0]
-          if (content.type !== 'text') {
-            throw new Error('Invalid response type')
-          }
-          return content.text
+      // Increase timeout and make it model-specific
+      const timeoutMs = modelName.includes('gemini') ? 60000 : 30000 // 60s for Gemini, 30s for others
+      
+      const timeoutPromise = new Promise<never>((_, reject) => 
+        setTimeout(() => reject(new Error('Model response timeout')), timeoutMs)
+      )
 
-        case 'gpt-4':
-          const openaiResponse = await openai.chat.completions.create({
-            model: 'gpt-4',
-            messages: [{ role: 'user', content: prompt }],
-            max_tokens: 1000,
-            temperature: 0.7
-          })
-          return openaiResponse.choices[0].message.content || ''
-
-        default:
-          throw new Error(`Unsupported model: ${modelName}`)
-      }
+      const responsePromise = this.callModel(prompt, modelName)
+      const response = await Promise.race([responsePromise, timeoutPromise])
+      
+      return response
     } catch (error) {
       console.error(`Error generating response from ${modelName}:`, error)
-      return `Error: Failed to generate response from ${modelName}`
+      // Return a more graceful error message that won't break evaluation
+      return `Error: ${modelName} timeout - model may be overloaded`
+    }
+  }
+
+  /**
+   * Call the specific model API
+   */
+  private async callModel(prompt: string, modelName: string): Promise<string> {
+    switch (modelName) {
+      case 'claude-3-haiku-20240307':
+      case 'claude-3-5-sonnet-20240620':
+      case 'claude-3-sonnet': // Map UI model name to actual model
+      case 'claude-3-haiku': // Map UI model name to actual model
+        const anthropicModelName = modelName === 'claude-3-sonnet' 
+          ? 'claude-3-5-sonnet-20240620' 
+          : modelName === 'claude-3-haiku' 
+          ? 'claude-3-haiku-20240307' 
+          : modelName
+        const anthropicResponse = await anthropic.messages.create({
+          model: anthropicModelName,
+          max_tokens: 1000,
+          temperature: 0.7,
+          messages: [{ role: 'user', content: prompt }]
+        })
+        const content = anthropicResponse.content[0]
+        if (content.type !== 'text') {
+          throw new Error('Invalid response type')
+        }
+        return content.text
+
+      case 'gpt-4o':
+        const openaiResponse = await openai.chat.completions.create({
+          model: 'gpt-4o',
+          messages: [{ role: 'user', content: prompt }],
+          max_tokens: 1000,
+          temperature: 0.7
+        })
+        return openaiResponse.choices[0].message.content || ''
+
+      case 'gemini-2.5-flash':
+      case 'gemini-flash': // Map UI model name
+        // Use direct Gemini API without rate limiting
+        const { GoogleGenerativeAI } = await import('@google/generative-ai')
+        const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GEMINI_API_KEY || '')
+        const geminiModel = genAI.getGenerativeModel({ model: "gemini-2.5-flash" })
+        
+        const result = await geminiModel.generateContent(prompt)
+        return result.response.text()
+
+      default:
+        throw new Error(`Unsupported model: ${modelName}`)
     }
   }
 
   /**
    * Calculate hallucination rate based on factual consistency and contradictions
    */
-  private async calculateHallucinationRate(responses: string[]): Promise<number> {
+  private calculateHallucinationRate(responses: string[]): number {
     let hallucinationScore = 0
 
     for (const response of responses) {
