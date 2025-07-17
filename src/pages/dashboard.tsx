@@ -46,16 +46,21 @@ export default function Dashboard({ user, userTokens }: DashboardProps) {
   }
 
   const handleSignOut = async () => {
-    const response = await fetch('/api/auth/signin', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ action: 'signout' }),
-    })
-    
-    if (response.ok) {
-      window.location.href = '/'
+    try {
+      const response = await fetch('/api/auth/signout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+      
+      if (response.ok) {
+        window.location.href = '/'
+      } else {
+        console.error('Sign out failed')
+      }
+    } catch (error) {
+      console.error('Sign out error:', error)
     }
   }
 

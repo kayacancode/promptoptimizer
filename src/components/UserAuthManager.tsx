@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { UserPlus, CheckCircle2, AlertCircle, Zap, LogIn, LogOut, User } from 'lucide-react'
 import { UserAuthManager, UserTokens } from '@/lib/user-auth'
+// import Cookies from 'js-cookie' // No longer needed
 
 export function UserAuthComponent() {
   const [email, setEmail] = useState<string>('')
@@ -96,10 +97,15 @@ export function UserAuthComponent() {
 
     try {
       const result = await UserAuthManager.signIn(email, password)
-      if (result.success) {
+      if (result.success && result.session) {
         setCurrentUser(result.user)
         setIsSignedIn(true)
         setMessage({ type: 'success', text: 'Welcome back!' })
+
+        // No longer need to manually set cookies
+        // Cookies.set('sb-access-token', result.session.access_token)
+        // Cookies.set('sb-refresh-token', result.session.refresh_token)
+
         await loadUserTokens(result.user.id)
       } else {
         setMessage({ type: 'error', text: result.error || 'Sign in failed' })
@@ -138,11 +144,11 @@ export function UserAuthComponent() {
         /* Authentication Forms */
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center">
+            <CardTitle className="flex items-center !text-black">
               {showSignIn ? <LogIn className="h-5 w-5 mr-2" /> : <UserPlus className="h-5 w-5 mr-2" />}
               {showSignIn ? 'Sign In' : 'Create Account'}
             </CardTitle>
-            <CardDescription>
+            <CardDescription className='!text-black'>
               {showSignIn 
                 ? 'Welcome back! Sign in to access your tokens.' 
                 : 'Create your account to get 10 free optimization tokens per day (Beta)'
@@ -151,27 +157,29 @@ export function UserAuthComponent() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="!text-black">Email</Label>
               <Input
                 id="email"
                 type="email"
                 placeholder="your@email.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                className="!text-black placeholder:!text-gray-500"
               />
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password" className="!text-black">Password</Label>
               <Input
                 id="password"
                 type="password"
                 placeholder={showSignIn ? 'Enter your password' : 'Create a secure password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                className="!text-black placeholder:!text-gray-500"
               />
               {!showSignIn && (
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs !text-gray-600">
                   Must be at least 6 characters
                 </p>
               )}
@@ -179,13 +187,14 @@ export function UserAuthComponent() {
             
             {!showSignIn && (
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                <Label htmlFor="confirmPassword" className="!text-black">Confirm Password</Label>
                 <Input
                   id="confirmPassword"
                   type="password"
                   placeholder="Confirm your password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="!text-black placeholder:!text-gray-500"
                 />
               </div>
             )}
@@ -216,16 +225,16 @@ export function UserAuthComponent() {
                     window.location.href = '/signin'
                   }
                 }}
-                className="text-sm"
+                className="text-sm !text-black"
               >
                 {showSignIn ? 'Need an account? Sign up here' : 'Already have an account? Sign in here'}
               </Button>
             </div>
             
             {!showSignIn && (
-              <div className="text-sm text-muted-foreground">
-                <p>✨ <strong>Beta Features:</strong></p>
-                <ul className="list-disc list-inside mt-1 space-y-1">
+              <div className="!text-black">
+                <h1 className="!text-black font-semibold"> Beta Features:</h1>
+                <ul className="list-disc list-inside mt-1 space-y-1 !text-black">
                   <li>10 free optimization tokens per day</li>
                   <li>Prompt history tracking</li>
                   <li>Usage analytics</li>
@@ -242,12 +251,12 @@ export function UserAuthComponent() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
-                <span className="flex items-center text-white">
-                  <User className="h-5 w-5 mr-2 text-white" />
+                <span className="flex items-center text-black">
+                  <User className="h-5 w-5 mr-2 text-black" />
                   Welcome, {currentUser?.email}
                 </span>
                 <Button variant="outline" size="sm" onClick={signOut}>
-                  <LogOut className="h-4 w-4 mr-2" />
+                  <LogOut className="h-4 w-4 mr-2 text-black"/>
                   Sign Out
                 </Button>
               </CardTitle>
@@ -258,9 +267,9 @@ export function UserAuthComponent() {
           {userTokens && (
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center justify-between text-white">
+                <CardTitle className="flex items-center justify-between text-black">
                   <span className="flex items-center">
-                    <Zap className="h-5 w-5 mr-2" />
+                    <Zap className="h-5 w-5 mr-2 text-black" />
                     Your Tokens
                   </span>
                   <Button variant="outline" size="sm" onClick={refreshTokens}>
@@ -269,23 +278,23 @@ export function UserAuthComponent() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-4 text-black">
                   <div className="space-y-1">
-                    <p className="text-sm font-medium">Tokens Remaining</p>
+                    <p className="text-sm font-medium text-black">Tokens Remaining</p>
                     <p className="text-2xl font-bold text-green-600">
                       {userTokens.usageTokens}
                     </p>
                   </div>
                   <div className="space-y-1">
-                    <p className="text-sm font-medium">Used Today</p>
-                    <p className="text-2xl font-bold">
+                    <p className="text-sm font-medium text-black">Used Today</p>
+                    <p className="text-2xl font-bold text-black">
                       {userTokens.dailyOptimizations}
                     </p>
                   </div>
                 </div>
                 
                 <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
+                  <div className="flex justify-between text-sm text-black">
                     <span>Daily Progress</span>
                     <span>{userTokens.dailyOptimizations} / 10</span>
                   </div>
@@ -300,11 +309,11 @@ export function UserAuthComponent() {
                 </div>
 
                 <div className="pt-2 border-t">
-                  <div className="flex justify-between text-sm text-muted-foreground">
+                  <div className="flex justify-between text-sm text-black">
                     <span>Total optimizations</span>
                     <span>{userTokens.totalOptimizations}</span>
                   </div>
-                  <div className="flex justify-between text-sm text-muted-foreground">
+                  <div className="flex justify-between text-sm text-black">
                     <span>Account created</span>
                     <span>{new Date(userTokens.createdAt).toLocaleDateString()}</span>
                   </div>
@@ -312,16 +321,16 @@ export function UserAuthComponent() {
 
                 {userTokens.usageTokens === 0 && (
                   <Alert>
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>
+                    <AlertCircle className="h-4 w-4 text-black" />
+                    <AlertDescription className="text-black">
                       You've used all your tokens for today. They'll reset at midnight!
                     </AlertDescription>
                   </Alert>
                 )}
 
                 <Alert>
-                  <Zap className="h-4 w-4" />
-                  <AlertDescription>
+                  <Zap className="h-4 w-4 text-black" />
+                  <AlertDescription className="text-black">
                     <strong className='text-black'>Beta Version:</strong> You get 10 free tokens per day. Tokens reset daily at midnight.
                   </AlertDescription>
                 </Alert>

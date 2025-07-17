@@ -350,7 +350,13 @@ export default function Home() {
                 <div className="flex items-center space-x-6">
                   {/* <a href="#features" className="text-gray-300 hover:text-white transition-colors">Features</a> */}
                   <a href="#pricing" className="text-gray-300 hover:text-white transition-colors">Pricing</a>
-                  <Button variant="outline" className="border-purple-500 text-purple-400 hover:bg-purple-500 hover:text-white">
+                  <Button 
+                    variant="outline" 
+                    className="border-purple-500 text-purple-400 hover:bg-purple-500 hover:text-white"
+                    onClick={() => {
+                      window.location.href = '/signin';
+                    }}
+                  >
                     Sign In
                   </Button>
                 </div>
@@ -543,17 +549,19 @@ export default function Home() {
 
               {/* Auth Section */}
               <div id="auth-section" className="mt-12 max-w-md mx-auto">
-                <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-8 shadow-2xl [&_.text-muted-foreground]:text-gray-200 [&_.text-sm]:text-gray-200 [&_.text-xs]:text-gray-300 [&_h2]:text-white [&_h3]:text-white [&_label]:text-white [&_p]:text-gray-200 [&_input]:bg-white/20 [&_input]:border-white/30 [&_input]:text-white [&_input::placeholder]:text-gray-300 [&_button]:bg-white/20 [&_button]:hover:bg-white/30 [&_button]:border-white/30">
+                <div className="bg-white/95 backdrop-blur-xl border border-gray-200 rounded-2xl p-8 shadow-2xl [&_*]:text-black [&_input]:bg-white [&_input]:border-gray-300 [&_input]:text-black [&_input::placeholder]:text-gray-500 [&_button]:bg-gray-100 [&_button]:hover:bg-gray-200 [&_button]:border-gray-300 [&_button]:text-black [&_label]:text-black [&_p]:text-black [&_h1]:text-black [&_h2]:text-black [&_h3]:text-black [&_.text-muted-foreground]:text-gray-600 [&_.text-sm]:text-black [&_.text-xs]:text-gray-600">
                   <UserAuthComponent />
                 </div>
                 {isUserSignedIn ? (
                   <div className="text-center mt-8">
                     <Button 
-                      onClick={() => setCurrentStep(1)}
+                      asChild
                       className="bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white border-0 px-8 py-4 text-lg font-semibold rounded-xl"
                     >
-                      Continue to Prompt Optimization
-                      <ArrowRight className="ml-2 h-4 w-4" />
+                      <a href="/dashboard">
+                        Continue to Prompt Optimization
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </a>
                     </Button>
                   </div>
                 ) : (

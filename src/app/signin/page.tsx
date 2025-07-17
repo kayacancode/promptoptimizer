@@ -27,10 +27,10 @@ export default function SignInPage() {
     try {
       const result = await UserAuthManager.signIn(email, password)
       if (result.success) {
-        setMessage({ type: 'success', text: 'Welcome back! Redirecting...' })
-        // Redirect to main app after successful sign-in
+        setMessage({ type: 'success', text: 'Welcome back! Redirecting to dashboard...' })
+        // Redirect to dashboard after successful sign-in
         setTimeout(() => {
-          window.location.href = '/'
+          window.location.href = '/dashboard'
         }, 1500)
       } else {
         setMessage({ type: 'error', text: result.error || 'Sign in failed' })
