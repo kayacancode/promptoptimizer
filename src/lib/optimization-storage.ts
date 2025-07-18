@@ -145,16 +145,26 @@ export class OptimizationStorage {
   // Get a specific optimization session
   async getOptimizationSession(sessionId: string): Promise<OptimizationSessionWithResults | null> {
     try {
-      const response = await fetch(`/api/optimization-sessions/${sessionId}`)
+      console.log('Attempting to fetch session with ID:', sessionId)
       
-      if (!response.ok) {
-        const errorData = await response.json()
-        console.error('Error fetching optimization session:', errorData)
+      // Use Supabase directly instead of fetch to avoid server-side URL issues
+      const { data, error } = await this.supabase
+        .from('optimization_sessions')
+        .select(`
+          *,
+          optimization_results (*)
+        `)
+        .eq('id', sessionId)
+        .single()
+
+      console.log('Supabase query result:', { data, error })
+
+      if (error) {
+        console.error('Error fetching optimization session:', error)
         return null
       }
 
-      const result = await response.json()
-      return result.data
+      return data
     } catch (error) {
       console.error('Error fetching optimization session:', error)
       return null
