@@ -2,6 +2,7 @@ import { GetServerSideProps } from 'next'
 import { createServerClient } from '@supabase/ssr'
 import { Database } from '../lib/supabase'
 import { PromptOptimizationFlow } from '@/components/PromptOptimizationFlow'
+import { OptimizationHistory } from '@/components/OptimizationHistory'
 import { useState } from 'react'
 import { User, Settings, LogOut, Zap, BarChart3, History } from 'lucide-react'
 
@@ -91,27 +92,27 @@ export default function Dashboard({ user, userTokens }: DashboardProps) {
                 <Zap className="w-4 h-4" />
                 <span>Optimize</span>
               </button>
-              {/* <button
-                onClick={() => setActiveTab('analytics')}
-                className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                  activeTab === 'analytics'
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                }`}
-              >
-                <BarChart3 className="w-4 h-4" />
-                <span>Analytics</span>
-              </button>
               <button
                 onClick={() => setActiveTab('history')}
                 className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                   activeTab === 'history'
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                    ? 'bg-gray-800 text-white'
+                    : 'text-gray-400 hover:text-white hover:bg-gray-800'
                 }`}
               >
                 <History className="w-4 h-4" />
                 <span>History</span>
+              </button>
+              {/* <button
+                onClick={() => setActiveTab('analytics')}
+                className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                  activeTab === 'analytics'
+                    ? 'bg-gray-800 text-white'
+                    : 'text-gray-400 hover:text-white hover:bg-gray-800'
+                }`}
+              >
+                <BarChart3 className="w-4 h-4" />
+                <span>Analytics</span>
               </button> */}
             </div>
 
@@ -226,22 +227,17 @@ export default function Dashboard({ user, userTokens }: DashboardProps) {
           </div>
         )}
 
+
+        {activeTab === 'history' && (
+          <OptimizationHistory userId={user.id} />
+        )}
+
         {activeTab === 'analytics' && (
           <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-8 border border-slate-200">
             <div className="text-center">
               <BarChart3 className="w-12 h-12 text-slate-400 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-slate-900 mb-2">Analytics Dashboard</h3>
               <p className="text-slate-600">Analytics and insights will be available here soon.</p>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'history' && (
-          <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-8 border border-slate-200">
-            <div className="text-center">
-              <History className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-slate-900 mb-2">Optimization History</h3>
-              <p className="text-slate-600">Your previous optimizations will appear here.</p>
             </div>
           </div>
         )}

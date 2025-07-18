@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Button } from './ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs'
@@ -24,6 +24,8 @@ import {
   Target
 } from 'lucide-react'
 import { createSupabaseBrowserClient } from '../../utils/supabase/client'
+import { PromptDiffViewer } from './PromptDiffViewer'
+import { optimizationStorage } from '@/lib/optimization-storage'
 
 interface ModelConfig {
   name: string
@@ -88,6 +90,27 @@ export function PromptOptimizationFlow({ onOptimizationComplete }: PromptOptimiz
   const [optimizationResult, setOptimizationResult] = useState<OptimizationResult | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [autoOptimizationStatus, setAutoOptimizationStatus] = useState<string | null>(null)
+  const [progressValue, setProgressValue] = useState(0)
+  const [isSaving, setIsSaving] = useState(false)
+
+  // Progressive loading effect
+  useEffect(() => {
+    let interval: NodeJS.Timeout
+    if (isLoading) {
+      setProgressValue(0)
+      interval = setInterval(() => {
+        setProgressValue(prev => {
+          if (prev < 25) return prev + Math.random() * 5
+          if (prev < 50) return prev + Math.random() * 3
+          if (prev < 75) return prev + Math.random() * 2
+          if (prev < 90) return prev + Math.random() * 1
+          return prev
+        })
+      }, 500)
+    }
+    return () => clearInterval(interval)
+  }, [isLoading])
+
 
   const handleModelConfigChange = (name: string, field: keyof ModelConfig, value: any) => {
     setModelConfigs(configs => {
@@ -111,6 +134,7 @@ export function PromptOptimizationFlow({ onOptimizationComplete }: PromptOptimiz
     { id: 'clarify', name: 'Clarify Requirements', icon: MessageSquare, description: 'Define your goals' },
     { id: 'configure', name: 'Configure Settings', icon: Settings, description: 'Set up optimization' },
     { id: 'optimize', name: 'Optimize Prompt', icon: Zap, description: 'AI enhancement' },
+    { id: 'diff', name: 'View Changes', icon: FileText, description: 'Compare prompts' },
     { id: 'evaluate', name: 'Run Evaluation', icon: BarChart3, description: 'Test performance' },
     { id: 'results', name: 'View Results', icon: TrendingUp, description: 'Review improvements' }
   ]
@@ -178,7 +202,11 @@ export function PromptOptimizationFlow({ onOptimizationComplete }: PromptOptimiz
       console.log('[DEBUG] Optimization result:', data.data)
       console.log('[DEBUG] Auto-optimization data:', data.data.autoOptimization)
       
+      setProgressValue(100)
       setIsLoading(false)
+      
+      // Move to diff step after optimization
+      setActiveStep('diff')
       
       // Call completion callback to refresh token balance
       onOptimizationComplete?.(data.success)
@@ -208,9 +236,13 @@ export function PromptOptimizationFlow({ onOptimizationComplete }: PromptOptimiz
         })
       })
       const data = await response.json()
-      setOptimizationResult(prev => ({ ...prev, ...data.data }))
+      const updatedResult = { ...optimizationResult, ...data.data }
+      setOptimizationResult(updatedResult)
       setIsLoading(false)
       setAutoOptimizationStatus(null)
+      
+      // Save the complete session after evaluation
+      await saveCompletedSession(updatedResult)
       
       // Move to results step after evaluation completes
       setActiveStep('results')
@@ -218,6 +250,60 @@ export function PromptOptimizationFlow({ onOptimizationComplete }: PromptOptimiz
       console.error('Evaluation error:', error)
       setIsLoading(false)
       setAutoOptimizationStatus(null)
+    }
+  }
+
+  const saveCompletedSession = async (finalResult: OptimizationResult) => {
+    setIsSaving(true)
+    try {
+      const supabase = createSupabaseBrowserClient()
+      const { data: { session }, error } = await supabase.auth.getSession()
+      
+      if (error || !session) {
+        console.log('Cannot save session - no auth session')
+        return
+      }
+      
+      console.log('Saving completed optimization session...')
+      
+      // Create the session
+      const newSession = await optimizationStorage.createOptimizationSession({
+        user_id: session.user.id,
+        original_prompt: prompt,
+        requirements_text: requirements,
+        evaluation_input: evaluationInput,
+        optimized_prompt: finalResult.optimizedPrompt,
+        explanation: finalResult.explanation,
+        overall_improvement_percentage: finalResult.overallImprovement,
+        settings_used: {
+          modelConfigs,
+          sampleSize: settings.sampleSize,
+          minScore: settings.minScore,
+          codeContextEnabled: settings.codeContextEnabled
+        },
+        is_completed: true,
+        completion_timestamp: new Date().toISOString()
+      })
+      
+      console.log('Session saved successfully:', newSession)
+      
+      // Save model results if available
+      if (newSession && finalResult.modelResults) {
+        const modelResults = finalResult.modelResults.map(result => ({
+          model_name: result.model,
+          hallucination_rate: result.hallucinationRate,
+          structure_score: result.structureScore,
+          consistency_score: result.consistencyScore,
+          improvement_percentage: finalResult.improvements ? finalResult.improvements[result.model] : undefined
+        }))
+        
+        await optimizationStorage.saveOptimizationResults(newSession.id!, modelResults)
+      }
+      
+    } catch (error) {
+      console.error('Error saving session:', error)
+    } finally {
+      setIsSaving(false)
     }
   }
 
@@ -623,7 +709,7 @@ export function PromptOptimizationFlow({ onOptimizationComplete }: PromptOptimiz
                       </div>
                       <h3 className="text-xl font-semibold mb-2 text-white">Generating...</h3>
                       <p className="text-gray-400 mb-6">bestmate is analyzing and improving your prompt...</p>
-                      <Progress value={75} className="w-full max-w-md mx-auto mb-4" />
+                      <Progress value={progressValue} className="w-full max-w-md mx-auto mb-4" />
                       <p className="text-sm text-gray-400">This may take a few moments</p>
                     </div>
                   ) : optimizationResult ? (
@@ -691,6 +777,41 @@ export function PromptOptimizationFlow({ onOptimizationComplete }: PromptOptimiz
               </Card>
             </TabsContent>
 
+            {/* Diff Viewer Tab */}
+            <TabsContent value="diff" className="mt-0">
+              <Card className="shadow-lg border-0">
+                <CardHeader className="rounded-t-lg">
+                  <CardTitle className="flex items-center text-2xl">
+                    <FileText className="h-6 w-6 mr-3 text-blue-600" />
+                    Compare Prompts
+                  </CardTitle>
+                  <CardDescription className="text-lg">
+                    Review the differences between your original and optimized prompts
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-8">
+                  {optimizationResult ? (
+                    <PromptDiffViewer
+                      originalPrompt={prompt}
+                      optimizedPrompt={optimizationResult.optimizedPrompt}
+                      explanation={optimizationResult.explanation}
+                      improvements={optimizationResult.improvements}
+                      overallImprovement={optimizationResult.overallImprovement}
+                      onDownload={undefined}
+                      onContinue={() => setActiveStep('evaluate')}
+                    />
+                  ) : (
+                    <div className="text-center py-12">
+                      <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <FileText className="h-8 w-8 text-gray-400" />
+                      </div>
+                      <p className="text-gray-600">No optimization results to compare</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
             {/* Run Evaluation Tab */}
             <TabsContent value="evaluate" className="mt-0">
               <Card className="shadow-lg border-0">
@@ -711,7 +832,7 @@ export function PromptOptimizationFlow({ onOptimizationComplete }: PromptOptimiz
                       </div>
                       <h3 className="text-xl font-semibold mb-2 text-white">Evaluating Performance...</h3>
                       <p className="text-gray-400 mb-6">Testing your prompts across models...</p>
-                      <Progress value={90} className="w-full max-w-md mx-auto mb-4" />
+                      <Progress value={progressValue} className="w-full max-w-md mx-auto mb-4" />
                       
                       {autoOptimizationStatus && (
                         <div className="bg-gray-800/50 border border-gray-600 rounded-lg p-4 mt-6 max-w-md mx-auto">
@@ -756,10 +877,10 @@ export function PromptOptimizationFlow({ onOptimizationComplete }: PromptOptimiz
                       <div className="flex items-center justify-between pt-6 border-t">
                         <Button 
                           variant="outline" 
-                          onClick={() => setActiveStep('optimize')}
+                          onClick={() => setActiveStep('diff')}
                           className="px-6 py-2"
                         >
-                          Back to Optimization
+                          Back to Diff
                         </Button>
                         <Button 
                           onClick={runModelEvaluation}
@@ -791,26 +912,27 @@ export function PromptOptimizationFlow({ onOptimizationComplete }: PromptOptimiz
                 <CardContent className="p-8">
                   {optimizationResult ? (
                     <div className="space-y-8">
-                      {/* Agent Status Indicator - Always Show */}
+                      {/* Session Status Indicator */}
                       <div className="bg-gray-800/30 rounded-lg p-4 border border-gray-600/50">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center">
-                            <div className="flex items-center bg-green-500/20 rounded-full px-3 py-1 mr-3">
-                              <div className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></div>
-                              <span className="text-green-400 text-sm font-medium">ONLINE</span>
+                            <div className={`flex items-center rounded-full px-3 py-1 mr-3 ${
+                              isSaving ? 'bg-blue-500/20' : 'bg-green-500/20'
+                            }`}>
+                              <div className={`w-2 h-2 rounded-full mr-2 ${
+                                isSaving ? 'bg-blue-500 animate-pulse' : 'bg-green-500'
+                              }`}></div>
+                              <span className={`text-sm font-medium ${
+                                isSaving ? 'text-blue-400' : 'text-green-400'
+                              }`}>
+                                {isSaving ? 'SAVING' : 'SAVED'}
+                              </span>
                             </div>
-                            <span className="text-white font-medium">Autonomous Agent</span>
+                            <span className="text-white font-medium">Optimization Session</span>
                           </div>
                           <div className="flex items-center">
                             <span className="text-gray-300 text-sm mr-2">
-                              {optimizationResult.autoOptimization 
-                                ? optimizationResult.autoOptimization.status === 'success' 
-                                  ? 'Applied optimization' 
-                                  : optimizationResult.autoOptimization.status === 'no_improvement'
-                                  ? 'Monitoring - no action needed'
-                                  : 'Monitoring - error occurred'
-                                : 'Monitoring - performance good'
-                              }
+                              {isSaving ? 'Saving to history...' : 'Saved to history'}
                             </span>
                             <Brain className="h-4 w-4 text-gray-400" />
                           </div>
@@ -1065,16 +1187,20 @@ export function PromptOptimizationFlow({ onOptimizationComplete }: PromptOptimiz
                         >
                           Back to Evaluation
                         </Button>
-                        <Button 
-                          onClick={() => {
-                            setPrompt(optimizationResult.optimizedPrompt)
-                            setActiveStep('input')
-                          }}
-                          className="bg-white text-black hover:bg-gray-200 px-8 py-3 text-lg"
-                        >
-                          Start New Optimization
-                          <Sparkles className="ml-2 h-5 w-5" />
-                        </Button>
+                        <div className="flex items-center space-x-4">
+                          <Button 
+                            onClick={() => {
+                              setPrompt(optimizationResult.optimizedPrompt)
+                              setActiveStep('input')
+                              setOptimizationResult(null)
+                              setIsSaving(false)
+                            }}
+                            className="bg-white text-black hover:bg-gray-200 px-8 py-3 text-lg"
+                          >
+                            Start New Optimization
+                            <Sparkles className="ml-2 h-5 w-5" />
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   ) : (
