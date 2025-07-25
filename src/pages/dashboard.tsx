@@ -3,8 +3,9 @@ import { createServerClient } from '@supabase/ssr'
 import { Database } from '../lib/supabase'
 import { PromptOptimizationFlow } from '@/components/PromptOptimizationFlow'
 import { OptimizationHistory } from '@/components/OptimizationHistory'
+import { BestMateKeyManager } from '@/components/BestMateKeyManager'
 import { useState } from 'react'
-import { User, Settings, LogOut, Zap, BarChart3, History } from 'lucide-react'
+import { User, Settings, LogOut, Zap, BarChart3, History, Key } from 'lucide-react'
 
 interface DashboardProps {
   user: {
@@ -102,6 +103,17 @@ export default function Dashboard({ user, userTokens }: DashboardProps) {
               >
                 <History className="w-4 h-4" />
                 <span>History</span>
+              </button>
+              <button
+                onClick={() => setActiveTab('api-keys')}
+                className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                  activeTab === 'api-keys'
+                    ? 'bg-gray-800 text-white'
+                    : 'text-gray-400 hover:text-white hover:bg-gray-800'
+                }`}
+              >
+                <Key className="w-4 h-4" />
+                <span>API Keys</span>
               </button>
               {/* <button
                 onClick={() => setActiveTab('analytics')}
@@ -230,6 +242,18 @@ export default function Dashboard({ user, userTokens }: DashboardProps) {
 
         {activeTab === 'history' && (
           <OptimizationHistory userId={user.id} />
+        )}
+
+        {activeTab === 'api-keys' && (
+          <div className="space-y-6">
+            <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800 shadow-lg">
+              <h2 className="text-xl font-semibold text-white mb-2">API Key Management</h2>
+              <p className="text-gray-400 mb-6">
+                Manage your BestMate API keys for use with the MCP server in Cursor IDE.
+              </p>
+              <BestMateKeyManager />
+            </div>
+          </div>
         )}
 
         {activeTab === 'analytics' && (

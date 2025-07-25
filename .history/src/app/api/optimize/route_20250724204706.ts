@@ -102,9 +102,9 @@ async function optimizePrompt(originalPrompt: string, requirements: string) {
   console.log('[DEBUG] Starting prompt optimization')
   
   try {
-    // Try Claude Opus 4  optimization first
+    // Try Claude 3.5 Sonnet optimization first
     if (process.env.ANTHROPIC_API_KEY) {
-      console.log('[DEBUG] Using Claude Opus 4 for AI-powered optimization')
+      console.log('[DEBUG] Using Claude 3.5 Sonnet for AI-powered optimization')
       
       const Anthropic = await import('@anthropic-ai/sdk')
       const anthropic = new Anthropic.default({

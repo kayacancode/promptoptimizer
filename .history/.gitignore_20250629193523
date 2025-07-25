@@ -39,9 +39,3 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-
-# MCP build files
-/mcp/dist/
-/mcp/bestmate/dist/
-
-./history

@@ -6,11 +6,15 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "mcp:build": "tsc --project mcp/tsconfig.json",
+    "mcp:dev": "npm run mcp:build && node mcp/dist/index.js",
+    "mcp:start": "node mcp/dist/index.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.24.3",
     "@google/generative-ai": "^0.21.0",
+    "@modelcontextprotocol/sdk": "^1.17.0",
     "@pinecone-database/pinecone": "^6.1.1",
     "@radix-ui/react-alert-dialog": "^1.0.5",
     "@radix-ui/react-checkbox": "^1.0.4",
