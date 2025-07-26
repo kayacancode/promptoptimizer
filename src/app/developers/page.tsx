@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSession, signIn } from 'next-auth/react';
+import { useSession } from 'next-auth/react';
 import { createSupabaseBrowserClient } from '../../../utils/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -188,7 +188,7 @@ export default function DevelopersPage() {
               <div className="text-center py-6">
                 <p className="text-gray-600 mb-4">Sign in to generate your API key</p>
                 <Button 
-                  onClick={() => signIn()}
+                  onClick={() => window.location.href = '/auth/signin?callbackUrl=' + encodeURIComponent(window.location.href)}
                   className="bg-gray-900 hover:bg-gray-800 text-white"
                 >
                   Sign In
