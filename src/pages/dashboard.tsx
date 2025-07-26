@@ -5,7 +5,7 @@ import { PromptOptimizationFlow } from '@/components/PromptOptimizationFlow'
 import { OptimizationHistory } from '@/components/OptimizationHistory'
 import { BestMateKeyManager } from '@/components/BestMateKeyManager'
 import { useState } from 'react'
-import { User, Settings, LogOut, Zap, BarChart3, History, Key } from 'lucide-react'
+import { User, Settings, LogOut, Zap, BarChart3, History, Key, Code } from 'lucide-react'
 
 interface DashboardProps {
   user: {
@@ -115,6 +115,13 @@ export default function Dashboard({ user, userTokens }: DashboardProps) {
                 <Key className="w-4 h-4" />
                 <span>API Keys</span>
               </button>
+              <a
+                href="/developers"
+                className="flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
+              >
+                <Code className="w-4 h-4" />
+                <span>Developers</span>
+              </a>
               {/* <button
                 onClick={() => setActiveTab('analytics')}
                 className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${

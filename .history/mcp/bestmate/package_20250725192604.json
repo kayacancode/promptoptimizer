@@ -1,6 +1,6 @@
 {
   "name": "bestmate-mcp-server",
-  "version": "1.0.2",
+  "version": "1.0.0",
   "description": "MCP server for BestMate prompt optimization - integrates with Cursor IDE",
   "type": "module",
   "main": "dist/index.js",

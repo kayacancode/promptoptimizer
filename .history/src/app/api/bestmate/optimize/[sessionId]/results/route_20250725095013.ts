@@ -151,7 +151,30 @@ async function generateGeminiOptimization(originalPrompt: string, requirements: 
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || process.env.GOOGLE_GEMINI_API_KEY);
   const model = genAI.getGenerativeModel({ model: 'gemini-2.5-pro' });
   
-  const optimizationPrompt = `# ROLE & GOAL\nYou are PROMPT-OPTIMIZER, an advanced AI specializing in refining and structuring user-provided prompts to be production-ready. Your primary goal is to transform a given prompt into a version that is clear, structured, effective, and robust, maximizing its performance with generative AI models.\n\n# CONTEXT & INPUTS\nYou will receive two inputs:\n1.  \"${originalPrompt}\": The user's initial prompt that requires optimization.\n2.  \"${requirements}\": Additional context, constraints, or goals provided by the user for the optimization process (e.g., \"target audience is non-technical,\" \"output must be a poem\").\n\n# CORE TASK & OPTIMIZATION PRINCIPLES\nAnalyze the \"${originalPrompt}\" and \"${requirements}\" to perform a comprehensive optimization. Rewrite the prompt according to the following principles:\n\n1.  **Clarity & Precision:**\n    *   Replace ambiguous language with direct, specific instructions.\n    *   Define the persona, context, task, and constraints explicitly.\n    *   Use simple, unambiguous vocabulary.\n\n2.  **Structure & Formatting:**\n    *   Employ Markdown (headings, lists, bolding) to create a logical and readable hierarchy.\n    *   Separate distinct components like Role, Task, Rules, and Output Format into their own sections.\n\n3.  **Effectiveness & Robustness:**\n    *   Provide clear examples (\`e.g.\`) to guide the model's output.\n    *   Incorporate explicit constraints and rules to prevent undesirable behavior (e.g., \"Do not...\").\n    *   Anticipate and guide the handling of edge cases or varied inputs.\n\n4.  **Actionable Language:**\n    *   Use imperative verbs (e.g., \"Generate,\" \"Analyze,\" \"Format\") to command the target AI.\n\n# OUTPUT REQUIREMENTS\nYou MUST respond ONLY with a single, raw JSON object. Do not include any explanatory text before or after the JSON. The JSON object must conform to the following structure:\n\n{\n  \"optimizedPrompt\": \"The full text of your rewritten, production-ready prompt. This should be a complete and self-contained prompt.\",\n  \"improvements\": [\n    \"A concise, bulleted list of the specific, key improvements you made. E.g., 'Introduced a structured ## ROLE section for clarity.'\",\n    \"E.g., 'Replaced vague term 'summarize' with specific instructions for length and format.'\",\n    \"E.g., 'Added an explicit ## OUTPUT FORMAT section to ensure consistent results.'\"\n  ],\n  \"reasoning\": \"A brief but comprehensive explanation of your overall optimization strategy, referencing the core principles (Clarity, Structure, Effectiveness) and how your changes achieve them.\",\n  \"hallucinationRate\": \"An estimated hallucination risk for the *optimized* prompt, expressed as a float between 0.0 (very low risk) and 1.0 (very high risk). This is a projection based on the prompt's improved clarity and constraints.\",\n  \"structureScore\": \"An estimated score from 0.0 to 1.0 representing the structural quality and readability of the *optimized* prompt.\",\n  \"consistencyScore\": \"An estimated score from 0.0 to 1.0 representing the likelihood that the *optimized* prompt will produce consistent outputs across multiple runs.\",\n  \"confidence\": \"Your confidence level (0.0 to 1.0) that the optimized prompt is a significant improvement over the original and meets the user's requirements.\"\n}\n\n# FINAL CHECK\nBefore generating the response, verify that your output is a single, valid JSON object and nothing else.`;
+  const optimizationPrompt = `You are an expert Prompt Engineering specialist focused on creating production-ready prompts.
+
+Optimize this prompt with a focus on clarity, structure, and effectiveness:
+
+Original Prompt: "${originalPrompt}"
+Requirements: "${requirements}"
+
+Create an optimized version that:
+- Uses clear, actionable language
+- Includes proper formatting and structure  
+- Provides specific guidance for expected outputs
+- Handles various input scenarios
+- Is immediately deployable in production
+
+Return ONLY a JSON object with this structure:
+{
+  "optimizedPrompt": "Your optimized prompt here",
+  "improvements": ["specific improvement 1", "specific improvement 2", "specific improvement 3"],
+  "reasoning": "Explanation of optimization strategy",
+  "hallucinationRate": 0.04,
+  "structureScore": 0.91,
+  "consistencyScore": 0.89,
+  "confidence": 0.90
+}`;
 
   const result = await model.generateContent(optimizationPrompt);
   const response = await result.response;

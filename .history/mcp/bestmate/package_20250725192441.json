@@ -1,6 +1,6 @@
 {
   "name": "bestmate-mcp-server",
-  "version": "1.0.2",
+  "version": "1.0.0",
   "description": "MCP server for BestMate prompt optimization - integrates with Cursor IDE",
   "type": "module",
   "main": "dist/index.js",
@@ -21,16 +21,15 @@
     "mcp",
     "model-context-protocol",
     "prompt-optimization",
-    "LLM-optimization",
     "cursor",
     "ide",
     "bestmate"
   ],
-  "author": "Kaya Jones",
+  "author": "Your Name",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/kayacancode/promptoptimizer",
+    "url": "https://github.com/kayacancode/promptloop.git",
     "directory": "mcp/bestmate"
   },
   "homepage": "https://www.bestmate.io/",

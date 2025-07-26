@@ -2,39 +2,58 @@
 
 This MCP (Model Context Protocol) server integrates BestMate's prompt optimization capabilities directly into your IDE through Cursor.
 
+## Quick Install (Recommended)
+
+```bash
+npm install -g bestmate-mcp-server
+```
+
 ## Setup
 
-1. **Install dependencies:**
-   ```bash
-   npm install
-   ```
-
-2. **Generate your API key:**
-   - Go to http://localhost:3000/dashboard
-   - Navigate to the "API Keys" tab
+1. **Generate your API key:**
+   - Go to https://www.bestmate.io/
+   - Navigate to the "API Keys" tab  
    - Click "Generate API Key"
    - Copy the generated key
 
-3. **Build the server:**
-   ```bash
-   npm run mcp:build
-   ```
-
-4. **Configure Cursor IDE:**
+2. **Configure Cursor IDE:**
    Add to your Cursor MCP settings:
    ```json
    {
      "mcpServers": {
        "bestmate": {
-         "command": "node",
-         "args": ["./mcp/bestmate/dist/index.js"],
+         "command": "bestmate-mcp",
          "env": {
-           "BESTMATE_API_KEY": "your-api-key"
+           "BESTMATE_API_KEY": "your-api-key-here"
          }
        }
      }
    }
    ```
+
+## Alternative: Development Install
+
+If you want to install from source:
+
+```bash
+git clone [your-repo-url]
+cd promptloop/mcp/bestmate
+npm install
+npm run build
+
+# Configure Cursor with local path:
+{
+  "mcpServers": {
+    "bestmate": {
+      "command": "node",
+      "args": ["./path/to/promptloop/mcp/bestmate/dist/index.js"],
+      "env": {
+        "BESTMATE_API_KEY": "your-api-key"
+      }
+    }
+  }
+}
+```
 
 ## Available Tools
 
