@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -14,6 +14,16 @@ export default function SignInPage() {
   const [password, setPassword] = useState<string>('')
   const [isSigningIn, setIsSigningIn] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
+  const [redirectTo, setRedirectTo] = useState<string>('dashboard')
+
+  useEffect(() => {
+    // Check for redirect parameter in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const redirect = urlParams.get('redirect');
+    if (redirect === 'developers') {
+      setRedirectTo('developers');
+    }
+  }, []);
 
   const signIn = async () => {
     if (!email || !password) {
@@ -27,10 +37,12 @@ export default function SignInPage() {
     try {
       const result = await UserAuthManager.signIn(email, password)
       if (result.success) {
-        setMessage({ type: 'success', text: 'Welcome back! Redirecting to dashboard...' })
-        // Redirect to dashboard after successful sign-in
+        const redirectUrl = redirectTo === 'developers' ? '/developers' : '/dashboard';
+        const redirectMessage = redirectTo === 'developers' ? 'Welcome back! Redirecting to developers page...' : 'Welcome back! Redirecting to dashboard...';
+        setMessage({ type: 'success', text: redirectMessage })
+        // Redirect after successful sign-in
         setTimeout(() => {
-          window.location.href = '/dashboard'
+          window.location.href = redirectUrl
         }, 1500)
       } else {
         setMessage({ type: 'error', text: result.error || 'Sign in failed' })

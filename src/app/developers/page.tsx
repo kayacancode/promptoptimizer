@@ -188,10 +188,10 @@ export default function DevelopersPage() {
               <div className="text-center py-6">
                 <p className="text-gray-600 mb-4">Sign in to generate your API key</p>
                 <Button 
-                  onClick={() => window.location.href = '/auth/signin?callbackUrl=' + encodeURIComponent(window.location.href)}
+                  onClick={() => window.location.href = '/signin?redirect=developers'}
                   className="bg-gray-900 hover:bg-gray-800 text-white"
                 >
-                  Sign In
+                  Sign In with BestMate
                 </Button>
               </div>
             )}
