@@ -349,6 +349,7 @@ export default function Home() {
                 </div>
                 <div className="flex items-center space-x-6">
                   {/* <a href="#features" className="text-gray-300 hover:text-white transition-colors">Features</a> */}
+                  <a href="/developers" className="text-gray-300 hover:text-white transition-colors">Developers</a>
                   <a href="#pricing" className="text-gray-300 hover:text-white transition-colors">Pricing</a>
                   <Button 
                     variant="outline" 
