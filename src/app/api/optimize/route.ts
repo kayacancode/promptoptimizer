@@ -68,8 +68,46 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Step 1: Optimize the prompt
-    const optimizationResult = await optimizePrompt(prompt, requirements)
+    // Step 1: Optimize the prompt using AutoOptimizer
+    const autoOptimizer = new AutoOptimizer()
+    
+    // First get baseline score for the original prompt
+    const benchmarkRunner = new BenchmarkRunner()
+    const models = [
+      { name: 'claude-3-haiku', enabled: true },
+      { name: 'gpt-4o', enabled: true }
+    ]
+    
+    let optimizationResult
+    try {
+      // Evaluate original prompt
+      const originalResults = await benchmarkRunner.runModelEvaluations(prompt, models, 1)
+      const originalScore = calculateOverallScore(originalResults)
+      
+      console.log(`[DEBUG] Original prompt score: ${originalScore}%`)
+      
+      // Use AutoOptimizer to detect and optimize if needed
+      const autoResult = await autoOptimizer.detectAndOptimize(prompt, originalScore, 70)
+      
+      if (autoResult && autoResult.status === 'success' && autoResult.selectedCandidate) {
+        optimizationResult = {
+          optimizedPrompt: autoResult.selectedCandidate.prompt,
+          explanation: `Applied ${autoResult.strategy} strategy. Improved score from ${originalScore}% to ${autoResult.selectedCandidate.score}% (+${autoResult.improvement.toFixed(1)}%)`,
+          changes: autoResult.selectedCandidate.strategy.promptModifications.map(mod => ({
+            type: 'improvement',
+            description: mod,
+            reasoning: `${autoResult.strategy} optimization strategy`
+          })),
+          confidence: autoResult.selectedCandidate.score ? autoResult.selectedCandidate.score / 100 : 0.5
+        }
+      } else {
+        // Fallback to Claude-based optimization if auto-optimization doesn't improve
+        optimizationResult = await optimizePrompt(prompt, requirements)
+      }
+    } catch (error) {
+      console.error('[DEBUG] AutoOptimizer failed, falling back to basic optimization:', error)
+      optimizationResult = await optimizePrompt(prompt, requirements)
+    }
 
     // Step 2: Return optimization results (evaluation will happen separately)
     console.log(`[DEBUG] Optimization confidence: ${optimizationResult.confidence * 100}%`)
@@ -93,6 +131,23 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
+}
+
+/**
+ * Calculate overall score from model evaluation results
+ */
+function calculateOverallScore(results: any[]): number {
+  if (results.length === 0) return 0
+
+  const avgHallucinationRate = results.reduce((sum, r) => sum + r.hallucinationRate, 0) / results.length
+  const avgStructureScore = results.reduce((sum, r) => sum + r.structureScore, 0) / results.length
+  const avgConsistencyScore = results.reduce((sum, r) => sum + r.consistencyScore, 0) / results.length
+
+  const hallucinationScore = (1 - avgHallucinationRate) * 100
+  const structurePercentage = avgStructureScore * 100
+  const consistencyPercentage = avgConsistencyScore * 100
+
+  return (hallucinationScore * 0.4 + structurePercentage * 0.3 + consistencyPercentage * 0.3)
 }
 
 /**
@@ -167,7 +222,7 @@ async function optimizePrompt(originalPrompt: string, requirements: string) {
 
       // Add timeout to Claude call
       const timeoutPromise = new Promise<never>((_, reject) => 
-        setTimeout(() => reject(new Error('Claude optimization timeout')), 20000)
+        setTimeout(() => reject(new Error('Claude optimization timeout')), 60000)
       )
       
       const optimizationPromise = anthropic.messages.create({
@@ -195,15 +250,8 @@ async function optimizePrompt(originalPrompt: string, requirements: string) {
             let jsonString = response.substring(jsonStart, jsonEnd + 1)
             console.log('[DEBUG] Extracted JSON string:', jsonString)
             
-            // Properly escape newlines and other control characters for JSON parsing
-            jsonString = jsonString
-              .replace(/\n/g, '\\n')
-              .replace(/\r/g, '\\r')
-              .replace(/\t/g, '\\t')
-              .replace(/\\/g, '\\\\')
-              .replace(/"/g, '\\"')
-              .replace(/\\"/g, '"') // Fix over-escaping of quotes
-              .replace(/\\\\/g, '\\') // Fix over-escaping of backslashes
+            // Properly handle JSON string - avoid over-escaping
+            jsonString = jsonString.trim()
             
             const parsed = JSON.parse(jsonString)
             console.log('[DEBUG] Successfully parsed Claude response')
@@ -219,21 +267,25 @@ async function optimizePrompt(originalPrompt: string, requirements: string) {
           
           // Manual extraction as fallback
           try {
-            // Extract optimizedPrompt using regex with proper handling of multiline content
-            const promptMatch = response.match(/"optimizedPrompt":\s*"((?:[^"\\]|\\.)*)"/s)
-            const explanationMatch = response.match(/"explanation":\s*"((?:[^"\\]|\\.)*)"/s)
+            // Extract optimizedPrompt using simple string extraction
+            const promptStart = response.indexOf('"optimizedPrompt":"') + '"optimizedPrompt":"'.length
+            const promptEnd = response.indexOf('","', promptStart)
+            const explanationStart = response.indexOf('"explanation":"') + '"explanation":"'.length
+            const explanationEnd = response.indexOf('","', explanationStart)
             
-            if (promptMatch) {
-              // Unescape the extracted content
-              const optimizedPrompt = promptMatch[1]
+            if (promptStart !== -1 && promptEnd !== -1 && promptEnd > promptStart) {
+              // Extract and unescape the content
+              const optimizedPrompt = response.substring(promptStart, promptEnd)
                 .replace(/\\n/g, '\n')
                 .replace(/\\"/g, '"')
                 .replace(/\\\\/g, '\\')
               
-              const explanation = explanationMatch ? explanationMatch[1]
-                .replace(/\\n/g, '\n')
-                .replace(/\\"/g, '"')
-                .replace(/\\\\/g, '\\') : 'Prompt optimized using Claude 3.5 Sonnet.'
+              const explanation = explanationStart !== -1 && explanationEnd !== -1 && explanationEnd > explanationStart
+                ? response.substring(explanationStart, explanationEnd)
+                    .replace(/\\n/g, '\n')
+                    .replace(/\\"/g, '"')
+                    .replace(/\\\\/g, '\\')
+                : 'Prompt optimized using Claude Opus 4.'
               
               console.log('[DEBUG] Manual extraction successful')
               return {
@@ -265,12 +317,12 @@ async function optimizePrompt(originalPrompt: string, requirements: string) {
  * World-class prompt engineering optimization based on expert best practices
  */
 function basicOptimization(originalPrompt: string, requirements: string) {
-  let optimizedPrompt = originalPrompt
+  let optimizedPrompt = originalPrompt.trim()
   const changes = []
   
-  // 1. CLARITY AND DIRECTNESS - Make prompt unambiguous and specific
-  if (!optimizedPrompt.includes('You are') && !optimizedPrompt.includes('Role:')) {
-    optimizedPrompt = `You are an expert assistant. ${optimizedPrompt}`
+  // 1. CLARITY AND DIRECTNESS - Always add role definition if missing
+  if (!optimizedPrompt.toLowerCase().includes('you are') && !optimizedPrompt.toLowerCase().includes('role:') && !optimizedPrompt.toLowerCase().includes('act as')) {
+    optimizedPrompt = `You are an expert assistant specializing in the requested task. ${optimizedPrompt}`
     changes.push({
       type: 'addition',
       description: 'Added clear role definition',
@@ -278,9 +330,9 @@ function basicOptimization(originalPrompt: string, requirements: string) {
     })
   }
 
-  // 2. OUTCOME-DRIVEN - Add clear success criteria and requirements
-  if (requirements) {
-    optimizedPrompt += `\n\n**Requirements & Success Criteria:**\n${requirements}`
+  // 2. OUTCOME-DRIVEN - Always add requirements if provided
+  if (requirements && requirements.trim()) {
+    optimizedPrompt += `\n\n**Requirements & Success Criteria:**\n${requirements.trim()}`
     changes.push({
       type: 'addition', 
       description: 'Added explicit requirements and success criteria',
@@ -288,8 +340,8 @@ function basicOptimization(originalPrompt: string, requirements: string) {
     })
   }
 
-  // 3. HANDLES EDGE CASES - Add instructions for unclear/missing data
-  if (!optimizedPrompt.includes('unclear') && !optimizedPrompt.includes('missing')) {
+  // 3. HANDLES EDGE CASES - Always add edge case handling
+  if (!optimizedPrompt.toLowerCase().includes('unclear') && !optimizedPrompt.toLowerCase().includes('missing') && !optimizedPrompt.toLowerCase().includes('if you need')) {
     optimizedPrompt += `\n\n**Edge Case Handling:**\nIf the request is unclear or information is missing, explicitly state what clarification you need before proceeding.`
     changes.push({
       type: 'addition',
@@ -298,53 +350,39 @@ function basicOptimization(originalPrompt: string, requirements: string) {
     })
   }
 
-  // 4. LEVERAGES MODEL STRENGTHS - Trust model capabilities, provide rich context
-  if (optimizedPrompt.length < 150) {
-    optimizedPrompt += `\n\n**Approach:**\nProvide a comprehensive, thoughtful response that demonstrates your expertise. Think step-by-step and explain your reasoning.`
+  // 4. LEVERAGES MODEL STRENGTHS - Add reasoning instructions
+  if (!optimizedPrompt.toLowerCase().includes('step-by-step') && !optimizedPrompt.toLowerCase().includes('think through') && !optimizedPrompt.toLowerCase().includes('reasoning')) {
+    optimizedPrompt += `\n\n**Approach:**\nProvide a comprehensive, thoughtful response. Think step-by-step and explain your reasoning when helpful.`
     changes.push({
       type: 'addition',
-      description: 'Added rich context and capability leveraging',
-      reasoning: 'Model strength principle: Trust model capabilities, provide rich context when needed'
+      description: 'Added reasoning and step-by-step guidance',
+      reasoning: 'Model strength principle: Encourage detailed thinking and explanation'
     })
   }
 
-  // 5. TRANSPARENT AND MAINTAINABLE - Add clear structure
-  if (!optimizedPrompt.includes('**') && optimizedPrompt.length > 100) {
-    // Add structure markers if prompt is complex but lacks organization
-    optimizedPrompt = optimizedPrompt.replace(/\n\n/g, '\n\n**Task:** ')
-    if (!optimizedPrompt.includes('**Task:**')) {
-      optimizedPrompt = `**Task:** ${optimizedPrompt}`
-    }
-    changes.push({
-      type: 'modification',
-      description: 'Added structural organization with clear sections',
-      reasoning: 'Transparency principle: Human-readable, easy to debug and adapt'
-    })
-  }
-
-  // 6. EMPATHETIC COMMUNICATION - Make intent clear to both model and humans
-  if (!optimizedPrompt.includes('Please') && !optimizedPrompt.includes('ensure')) {
-    optimizedPrompt += `\n\n**Quality Check:**\nPlease ensure your response directly addresses the core request and provides actionable value.`
+  // 5. OUTPUT FORMAT - Add output format guidance if missing
+  if (!optimizedPrompt.toLowerCase().includes('format') && !optimizedPrompt.toLowerCase().includes('structure') && optimizedPrompt.length > 50) {
+    optimizedPrompt += `\n\n**Output Format:**\nStructure your response clearly with appropriate headings or bullet points when helpful.`
     changes.push({
       type: 'addition',
-      description: 'Added empathetic communication and quality guidance',
-      reasoning: 'Empathetic principle: Make intent legible to both model and other humans'
+      description: 'Added output format guidance',
+      reasoning: 'Transparency principle: Clear structure improves readability and usability'
     })
   }
 
-  // 7. USES MODEL AS COLLABORATOR - Encourage model to self-improve
-  optimizedPrompt += `\n\n**Self-Assessment:**\nAfter providing your response, briefly evaluate whether it fully addresses the request and suggest any improvements if needed.`
+  // 6. QUALITY CHECK - Always add quality assurance
+  optimizedPrompt += `\n\n**Quality Assurance:**\nEnsure your response directly addresses the core request and provides actionable, accurate information.`
   changes.push({
     type: 'addition',
-    description: 'Added collaborative self-assessment instruction',
-    reasoning: 'Collaboration principle: Use model as partner in refining the task'
+    description: 'Added quality assurance instruction',
+    reasoning: 'Quality principle: Explicit instruction for response relevance and accuracy'
   })
 
   return {
     optimizedPrompt,
-    explanation: 'Applied world-class prompt engineering principles: clarity, outcome-focus, edge case handling, model strength leveraging, transparency, empathetic communication, and collaborative improvement. Based on expert frameworks from top prompt engineers.',
+    explanation: 'Applied essential prompt engineering principles: role clarity, requirements specification, edge case handling, reasoning guidance, output formatting, and quality assurance. These improvements make the prompt more effective and reliable.',
     changes,
-    confidence: 0.92
+    confidence: 0.85
   }
 }
 
