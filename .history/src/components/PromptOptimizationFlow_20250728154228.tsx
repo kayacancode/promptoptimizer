@@ -495,7 +495,7 @@ export function PromptOptimizationFlow({ onOptimizationComplete }: PromptOptimiz
                     Configure Settings
                   </CardTitle>
                   <CardDescription className="text-lg text-gray-400">
-                    Please select the LLM models you want to test with your optimized prompt
+                    Set up your optimization preferences and model configurations
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="p-8 space-y-8 bg-gray-900">

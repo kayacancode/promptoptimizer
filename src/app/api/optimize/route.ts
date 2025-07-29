@@ -105,7 +105,8 @@ export async function POST(request: NextRequest) {
         optimizationResult = await optimizePrompt(prompt, requirements)
       }
     } catch (error) {
-      console.error('[DEBUG] AutoOptimizer failed, falling back to basic optimization:', error)
+      console.error('[DEBUG] AutoOptimizer failed, falling back to optimizePrompt:', error)
+      console.error('[DEBUG] Error details:', error instanceof Error ? error.message : 'Unknown error')
       optimizationResult = await optimizePrompt(prompt, requirements)
     }
 
@@ -155,16 +156,21 @@ function calculateOverallScore(results: any[]): number {
  */
 async function optimizePrompt(originalPrompt: string, requirements: string) {
   console.log('[DEBUG] Starting prompt optimization')
+  console.log('[DEBUG] ANTHROPIC_API_KEY present:', !!process.env.ANTHROPIC_API_KEY)
+  console.log('[DEBUG] ANTHROPIC_API_KEY length:', process.env.ANTHROPIC_API_KEY?.length || 0)
   
   try {
     // Try Claude Opus 4  optimization first
     if (process.env.ANTHROPIC_API_KEY) {
       console.log('[DEBUG] Using Claude Opus 4 for AI-powered optimization')
+      console.log('[DEBUG] About to import Anthropic SDK')
       
       const Anthropic = await import('@anthropic-ai/sdk')
+      console.log('[DEBUG] Anthropic SDK imported successfully')
       const anthropic = new Anthropic.default({
         apiKey: process.env.ANTHROPIC_API_KEY
       })
+      console.log('[DEBUG] Anthropic client created successfully')
       
       const optimizationPrompt = `You are acting as a world-class Prompt Engineering Evaluator Agent.
 
@@ -233,8 +239,10 @@ async function optimizePrompt(originalPrompt: string, requirements: string) {
       })
       
       const result = await Promise.race([optimizationPromise, timeoutPromise])
+      console.log('[DEBUG] Claude API call completed successfully')
       
       if (result.content[0].type === 'text') {
+        console.log('[DEBUG] Claude returned text response')
         const response = result.content[0].text
         console.log('[DEBUG] Claude optimization response received')
         
@@ -302,10 +310,14 @@ async function optimizePrompt(originalPrompt: string, requirements: string) {
       }
     } else {
       console.log('[DEBUG] No Anthropic API key found')
+      console.log('[DEBUG] Environment check - NODE_ENV:', process.env.NODE_ENV)
+      console.log('[DEBUG] Environment check - VERCEL:', process.env.VERCEL)
     }
   } catch (error) {
     console.error('[DEBUG] Claude optimization error:', error)
     console.error('[DEBUG] Error details:', error instanceof Error ? error.message : 'Unknown error')
+    console.error('[DEBUG] Error name:', error instanceof Error ? error.name : 'Unknown')
+    console.error('[DEBUG] Error stack:', error instanceof Error ? error.stack : 'No stack')
   }
   
   // Fallback to rule-based optimization

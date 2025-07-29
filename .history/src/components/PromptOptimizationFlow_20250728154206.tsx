@@ -132,7 +132,7 @@ export function PromptOptimizationFlow({ onOptimizationComplete }: PromptOptimiz
   const steps = [
     { id: 'input', name: 'Input Prompt', icon: FileText, description: 'Enter your prompt' },
     { id: 'clarify', name: 'Clarify Requirements', icon: MessageSquare, description: 'Define your goals' },
-    { id: 'configure', name: 'Configure Settings', icon: Settings, description: 'Set up LLM configurations' },
+    { id: 'configure', name: 'Configure Settings', icon: Settings, description: 'Set up optimization' },
     { id: 'optimize', name: 'Optimize Prompt', icon: Zap, description: 'AI enhancement' },
     { id: 'diff', name: 'View Changes', icon: FileText, description: 'Compare prompts' },
     { id: 'evaluate', name: 'Run Evaluation', icon: BarChart3, description: 'Test performance' },
@@ -495,7 +495,7 @@ export function PromptOptimizationFlow({ onOptimizationComplete }: PromptOptimiz
                     Configure Settings
                   </CardTitle>
                   <CardDescription className="text-lg text-gray-400">
-                    Please select the LLM models you want to test with your optimized prompt
+                    Set up your optimization preferences and model configurations
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="p-8 space-y-8 bg-gray-900">
