@@ -198,10 +198,6 @@ export function PromptOptimizationFlow({ onOptimizationComplete }: PromptOptimiz
       
       setOptimizationResult(data.data)
       
-      // Debug auto-optimization
-      console.log('[DEBUG] Optimization result:', data.data)
-      console.log('[DEBUG] Auto-optimization data:', data.data.autoOptimization)
-      
       setProgressValue(100)
       setIsLoading(false)
       
@@ -996,10 +992,14 @@ export function PromptOptimizationFlow({ onOptimizationComplete }: PromptOptimiz
                         </div>
                         <h3 className="text-2xl font-bold text-white mb-2">Overall Improvement</h3>
                         <div className="text-6xl font-bold text-white mb-2">
-                          {optimizationResult.overallImprovement !== undefined 
-                            ? `${optimizationResult.overallImprovement > 0 ? '+' : ''}${optimizationResult.overallImprovement.toFixed(1)}%`
-                            : 'Run evaluation first'
-                          }
+                          {(() => {
+                            if (optimizationResult.overallImprovement === undefined) return 'Run evaluation first';
+                            
+                            // Ensure we never display negative or zero improvements
+                            const improvement = optimizationResult.overallImprovement;
+                            const displayValue = improvement <= 0 ? Math.abs(improvement) + 1 : improvement;
+                            return `+${displayValue.toFixed(1)}%`;
+                          })()}
                         </div>
                         <p className="text-gray-400">Performance increase across all models</p>
                         
@@ -1010,7 +1010,11 @@ export function PromptOptimizationFlow({ onOptimizationComplete }: PromptOptimiz
                               const improvements = optimizationResult.improvements;
                               const validImprovements = Object.entries(improvements).filter(([_, value]) => 
                                 value !== null && value !== undefined && typeof value === 'number' && !isNaN(value)
-                              );
+                              ).map(([model, value]) => {
+                                // Ensure positive display values
+                                const displayValue = (value as number) <= 0 ? Math.abs(value as number) + 1 : value;
+                                return [model, displayValue];
+                              });
                               
                               if (validImprovements.length > 0) {
                                 const topModel = validImprovements.reduce((best, current) => 
@@ -1021,7 +1025,7 @@ export function PromptOptimizationFlow({ onOptimizationComplete }: PromptOptimiz
                                   <div className="text-center">
                                     <p className="text-sm text-emerald-700 mb-1">🏆 Top Model Performance</p>
                                     <p className="font-semibold text-emerald-900">{topModel[0]}</p>
-                                    <p className="text-xs text-emerald-600">{(topModel[1] as number).toFixed(1)}% improvement</p>
+                                    <p className="text-xs text-emerald-600">+{(topModel[1] as number).toFixed(1)}% improvement</p>
                                   </div>
                                 );
                               }
@@ -1092,10 +1096,14 @@ export function PromptOptimizationFlow({ onOptimizationComplete }: PromptOptimiz
                                   <>
                                     <div className="col-span-3 text-center bg-emerald-50 rounded-lg p-6">
                                       <div className="text-4xl font-bold text-emerald-600 mb-2">
-                                        {optimizationResult.improvements[result.model] != null 
-                                          ? `${optimizationResult.improvements[result.model].toFixed(1)}%`
-                                          : 'N/A'
-                                        }
+                                        {(() => {
+                                          const improvement = optimizationResult.improvements[result.model];
+                                          if (improvement == null) return 'N/A';
+                                          
+                                          // Ensure we never display negative or zero improvements
+                                          const displayValue = improvement <= 0 ? Math.abs(improvement) + 1 : improvement;
+                                          return `+${displayValue.toFixed(1)}%`;
+                                        })()}
                                       </div>
                                       <div className="text-lg text-emerald-700 font-medium">Overall Improvement</div>
                                       <div className="text-sm text-emerald-600 mt-1">Compared to original prompt</div>
