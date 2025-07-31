@@ -30,15 +30,22 @@ export async function POST(request: NextRequest) {
 
     const token = authHeader.substring(7)
     
+    // Create Supabase clients
+    const supabaseAuth = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
+    
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY!
+    )
+    
+    let userId: string
+    
     // Validate user and consume token
     try {
-      // Create Supabase client and get user from token
-      const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      )
-      
-      const { data: { user }, error: userError } = await supabase.auth.getUser(token)
+      const { data: { user }, error: userError } = await supabaseAuth.auth.getUser(token)
       
       if (userError || !user) {
         console.error('User validation error:', userError)
@@ -48,10 +55,11 @@ export async function POST(request: NextRequest) {
         )
       }
       
-      console.log('User ID extracted from token:', user.id)
+      userId = user.id
+      console.log('User ID extracted from token:', userId)
       
       // Now consume the token using the user ID
-      const tokenResult = await UserAuthManager.useToken(user.id)
+      const tokenResult = await UserAuthManager.useToken(userId)
       if (!tokenResult.success) {
         return NextResponse.json(
           { success: false, error: tokenResult.error },
@@ -60,6 +68,7 @@ export async function POST(request: NextRequest) {
       }
       
       console.log('Token consumed successfully, remaining tokens:', tokenResult.remainingTokens)
+      
     } catch (error) {
       console.error('Token validation error:', error)
       return NextResponse.json(
@@ -110,8 +119,64 @@ export async function POST(request: NextRequest) {
       optimizationResult = await optimizePrompt(prompt, requirements)
     }
 
-    // Step 2: Return optimization results (evaluation will happen separately)
+    // Step 2: Save optimization session to database
     console.log(`[DEBUG] Optimization confidence: ${optimizationResult.confidence * 100}%`)
+    
+    try {
+      // Create optimization session in database
+      const sessionData = {
+        user_id: userId,
+        session_name: `Web Optimization - ${new Date().toLocaleString()}`,
+        original_prompt: prompt,
+        requirements_text: requirements,
+        optimized_prompt: optimizationResult.optimizedPrompt,
+        explanation: optimizationResult.explanation,
+        overall_improvement_percentage: optimizationResult.confidence * 100,
+        settings_used: {
+          modelConfigs: modelConfigs || [
+            { name: 'claude-3-haiku', enabled: true },
+            { name: 'gpt-4o', enabled: true }
+          ],
+          sampleSize: 1,
+          minScore: 70,
+          codeContextEnabled: false,
+          source: 'web'
+        },
+        is_completed: true,
+        completion_timestamp: new Date().toISOString()
+      }
+
+      const { data: optimizationSession, error: sessionError } = await supabase
+        .from('optimization_sessions')
+        .insert(sessionData)
+        .select()
+        .single()
+
+      if (sessionError) {
+        console.error('Error creating optimization session:', sessionError)
+      } else {
+        console.log('Optimization session saved successfully:', optimizationSession.id)
+        
+        // Also save to user_prompts for backward compatibility
+        try {
+          await supabase
+            .from('user_prompts')
+            .insert({
+              user_id: userId,
+              prompt_text: prompt,
+              response_text: optimizationResult.optimizedPrompt,
+              model_used: 'auto-optimizer',
+              session_id: optimizationSession.id,
+              is_optimization_result: true
+            })
+        } catch (promptError) {
+          console.error('Error saving to user_prompts:', promptError)
+        }
+      }
+    } catch (dbError) {
+      console.error('Database save error:', dbError)
+      // Don't fail the request if database save fails
+    }
 
     const response = {
       originalPrompt: prompt,
